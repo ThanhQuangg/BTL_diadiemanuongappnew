@@ -160,5 +160,5 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
         }).data, status=status.HTTP_200_OK)
 
 
-class ThongKeViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
-    def thong_ke_ban_hang(request):
+# class ThongKeViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
+#     def thong_ke_ban_hang(request):

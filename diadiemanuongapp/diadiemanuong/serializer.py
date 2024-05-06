@@ -3,6 +3,14 @@ from rest_framework import serializers
 
 
 class CategorySerializer(serializers.ModelSerializer):
+    image = serializers.SerializerMethodField(source='image')
+
+    def get_image(self, obj):
+        request = self.context.get('request')
+        if obj.image:
+            if request:
+                return request.build_absolute_uri("/static/%s" % obj.image.name)
+            return "/static/%s" % obj.image.name
     class Meta:
         model = Category
         fields = '__all__'

@@ -26,7 +26,7 @@ class BaseModel(models.Model):
 
 class Category(BaseModel):
     name = models.CharField(max_length=50, null=False)
-
+    image = models.ImageField(upload_to="category/%Y/%m", null=True)
     def __str__(self):
         return self.name
 

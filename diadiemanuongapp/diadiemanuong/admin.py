@@ -97,7 +97,6 @@ class DishAdmin(admin.ModelAdmin):
 
 
 #Register model here.
-
 admin_site.register(Category, CategoryAdmin)
 admin_site.register(Restaurant, RestaurantAdmin)
 admin_site.register(User)
