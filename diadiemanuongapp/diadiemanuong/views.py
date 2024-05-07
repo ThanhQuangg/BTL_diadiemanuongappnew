@@ -18,7 +18,7 @@ from django.db.models import Q, Sum
 
 # Create your views here.
 
-class CategoryViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
+class CategoryViewSet(viewsets.ViewSet, generics.RetrieveAPIView, generics.ListAPIView):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
 
@@ -29,7 +29,8 @@ class CategoryViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
             'request': request
         }).data, status=status.HTTP_200_OK)
 
-class RestaurantViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
+
+class RestaurantViewSet(viewsets.ViewSet, generics.RetrieveAPIView, generics.ListAPIView):
     queryset = Restaurant.objects.all()
     serializer_class = RestaurantSerializer
     pagination_class = RestaurantPaginator
@@ -52,9 +53,7 @@ class RestaurantViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
         }).data, status=status.HTTP_200_OK)
 
 
-
-
-class DishViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
+class DishViewSet(viewsets.ViewSet, generics.RetrieveAPIView, generics.ListAPIView):
     queryset = Dish.objects.all()
     serializer_class = DishSerializer
     # pagination_class = DishPaginator
@@ -110,6 +109,7 @@ class DishViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
     #
     # def destroy(self, request, pk=None):
 
+
 class CommentViewSet(viewsets.ViewSet, generics.DestroyAPIView, generics.UpdateAPIView):
     queryset = Comment.objects.all()
     serializer_class = CommentSerializer
@@ -147,6 +147,3 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
         return Response(UserSerializer(request.user, context={
             "request": request
         }).data, status=status.HTTP_200_OK)
-
-
-

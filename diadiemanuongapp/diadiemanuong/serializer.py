@@ -35,7 +35,7 @@ class RestaurantSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Restaurant
-        fields = ['id', 'name', 'image', 'description', 'tags']
+        fields = ['id', 'name', 'address', 'image', 'description', 'tags']
 
 
 class DishSerializer(serializers.ModelSerializer):
