@@ -68,6 +68,7 @@ class DishSerializerDetail(DishSerializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
+
     class Meta:
         # không hiển thị lại password
         extra_kwargs = {

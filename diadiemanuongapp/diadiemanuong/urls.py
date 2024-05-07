@@ -1,6 +1,7 @@
 from django.urls import path, include
 from . import views
 from rest_framework import routers
+from rest_framework_simplejwt import views as jwt_views
 
 
 
@@ -11,9 +12,8 @@ router.register('dishes', views.DishViewSet, basename='dishes')
 router.register('users', views.UserViewSet, basename='users')
 router.register('comments', views.CommentViewSet, basename='comments')
 
+
 urlpatterns = [
-    path('', include(router.urls))
-    # path('diadiemanuong/', views.index, name="index"),
-    # path('diadiemanuong/<int:restaurant_id>', views.list, name="list"),
-    # path('category/', views.CategoryView.as_view())
+    path('', include(router.urls)),
+
 ]

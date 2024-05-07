@@ -1,4 +1,5 @@
 from django.contrib.admin import action
+from django.contrib.auth import authenticate, login
 from django.shortcuts import render
 from django.http import HttpResponse, HttpRequest
 from django.views import View
@@ -17,12 +18,12 @@ from django.db.models import Q, Sum
 
 # Create your views here.
 
-class CategoryViewSet(viewsets.ViewSet, generics.ListAPIView):
+class CategoryViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
 
 
-class RestaurantViewSet(viewsets.ViewSet, generics.ListAPIView):
+class RestaurantViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
     queryset = Restaurant.objects.all()
     serializer_class = RestaurantSerializer
     pagination_class = RestaurantPaginator
@@ -45,25 +46,7 @@ class RestaurantViewSet(viewsets.ViewSet, generics.ListAPIView):
         }).data, status=status.HTTP_200_OK)
 
 
-class DishViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
-    queryset = Dish.objects.all()
-    serializer_class = DishSerializer
-    # pagination_class = DishPaginator
 
-    # xác thực quyền
-    permission_classes = [permissions.AllowAny()]
-
-    def get_permissions(self):
-        if self.action in ['add_comment', 'like']:
-            return [permissions.IsAuthenticated()]
-        return self.permission_classes
-
-    def get_queryset(self):
-        queries = self.queryset
-        q = self.request.query_params.get('q')
-        if q:
-            queries = queries.filter(name__icontains=q)
-        return queries
 
 class DishViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
     queryset = Dish.objects.all()
@@ -160,5 +143,4 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
         }).data, status=status.HTTP_200_OK)
 
 
-# class ThongKeViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
-#     def thong_ke_ban_hang(request):
+
