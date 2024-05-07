@@ -13,7 +13,7 @@ class CategorySerializer(serializers.ModelSerializer):
             return "/static/%s" % obj.image.name
     class Meta:
         model = Category
-        fields = '__all__'
+        fields = ['name', 'image']
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -51,7 +51,7 @@ class DishSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Dish
-        fields = ['id', 'name', 'description', 'created_date', 'updated_date', 'image', 'tags']
+        fields = ['id', 'name', 'description', 'created_date', 'updated_date', 'image', 'tags', 'address']
 
 
 class DishSerializerDetail(DishSerializer):

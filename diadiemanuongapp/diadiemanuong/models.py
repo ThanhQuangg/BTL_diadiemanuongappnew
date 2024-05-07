@@ -63,6 +63,7 @@ class Dish(BaseModel):
     price = models.DecimalField(max_digits=10, decimal_places=2)
     image = models.ImageField(upload_to="dish/%Y/%m", null=True)
     restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE)
+    address = models.CharField(max_length=255, null=True)
     tags = models.ManyToManyField('Tag')
 
     def __str__(self):

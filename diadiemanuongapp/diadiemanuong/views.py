@@ -24,7 +24,7 @@ class CategoryViewSet(viewsets.ViewSet, generics.RetrieveAPIView, generics.ListA
 
     @action(methods=['get'], detail=True)
     def restaurants(self, request, pk):
-        d = self.get_object().dish_set.all()
+        d = self.get_object().restaurant_set.all()
         return Response(RestaurantSerializer(d, many=True, context={
             'request': request
         }).data, status=status.HTTP_200_OK)
