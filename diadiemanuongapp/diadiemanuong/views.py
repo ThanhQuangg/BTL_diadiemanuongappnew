@@ -22,6 +22,12 @@ class CategoryViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
 
+    @action(methods=['get'], detail=True)
+    def restaurants(self, request, pk):
+        d = self.get_object().dish_set.all()
+        return Response(RestaurantSerializer(d, many=True, context={
+            'request': request
+        }).data, status=status.HTTP_200_OK)
 
 class RestaurantViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
     queryset = Restaurant.objects.all()
