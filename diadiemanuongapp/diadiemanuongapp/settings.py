@@ -164,3 +164,7 @@ Client_secret = "G8AzwYDWLHI8Yvg7irMf82RYQjsbxZC8v4oOATtVjjaLxfGiPsz9c8lQ1upZDBr
 OAUTH2_PROVIDER = {
     'OAUTH2_BACKEND_CLASS': 'oauth2_provider.oauth2_backends.JSONOAuthLibCore'
 }
+
+ALLOWED_HOSTS = ['51ae-116-108-218-247.ngrok-free.app']
+CSRF_COOKIE_SECURE = False
+CSRF_COOKIE_SAMESITE = False
