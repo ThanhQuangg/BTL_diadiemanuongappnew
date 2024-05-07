@@ -18,7 +18,7 @@ from django.db.models import Q, Sum
 
 # Create your views here.
 
-class CategoryViewSet(viewsets.ViewSet, generics.RetrieveAPIView, generics.ListAPIView):
+class CategoryViewSet(viewsets.ViewSet, generics.RetrieveAPIView, generics.ListAPIView ):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
 
