@@ -12,7 +12,7 @@ from .paginator import RestaurantPaginator, DishPaginator, UserPaginator
 from .serializer import CategorySerializer, RestaurantSerializer, DishSerializer, UserSerializer, CommentSerializer, \
     DishSerializerDetail
 from .models import Category, Restaurant, Dish, User, Comment, Like, DonHang
-
+from oauth2_provider.models import AccessToken
 from django.db.models import Q, Sum
 
 
@@ -129,7 +129,7 @@ class CategoryView(View):
         pass
 
 
-class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
+class UserViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.ListAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     pagination_class = UserPaginator
@@ -147,3 +147,12 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
         return Response(UserSerializer(request.user, context={
             "request": request
         }).data, status=status.HTTP_200_OK)
+
+    #api get user
+    @action(methods=['get'], url_path="current", detail=False)
+    def user_info(request):
+        access_token = request.META['HTTP_AUTHORIZATION'].split(' ')[1]
+        token = AccessToken.objects.get(token=access_token)
+        user = token.user
+        # Lấy thông tin người dùng và xử lý
+        return Response({'message': 'Hello, ' + user.username})

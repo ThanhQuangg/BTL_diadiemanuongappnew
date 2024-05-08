@@ -60,7 +60,7 @@ class Dish(BaseModel):
     name = models.CharField(max_length=255)
     # add ckeditor de format noi dung
     description = RichTextField(null=True)
-    price = models.DecimalField(max_digits=10, decimal_places=2)
+    price = models.DecimalField(max_digits=10,decimal_places=2)
     image = models.ImageField(upload_to="dish/%Y/%m", null=True)
     restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE)
     address = models.CharField(max_length=255, null=True)

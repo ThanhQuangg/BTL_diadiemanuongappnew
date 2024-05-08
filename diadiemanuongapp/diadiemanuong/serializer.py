@@ -13,7 +13,7 @@ class CategorySerializer(serializers.ModelSerializer):
             return "/static/%s" % obj.image.name
     class Meta:
         model = Category
-        fields = ['name', 'image']
+        fields = ['id', 'name', 'image']
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -70,23 +70,25 @@ class DishSerializerDetail(DishSerializer):
 class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
+        model = User
+        fields = ['first_name', 'last_name', 'email', 'username', 'password', 'avatar']
         # không hiển thị lại password
         extra_kwargs = {
             'password': {
                 'write_only': True
             }
         }
-        model = User
-        fields = ['first_name', 'last_name', 'email', 'username', 'password', 'avatar']
+
+
 
         # băm password
-        def create(self, validated_data):
-            data = validated_data.copy()
-            user = User(**data)
-            user.set_password(data['password'])
-            user.save()
+    def create(self, validated_data):
+        data = validated_data.copy()
+        user = User(**data)
+        user.set_password(data['password'])
+        user.save()
 
-            return user
+        return user
 
 
 class CommentSerializer(serializers.ModelSerializer):
