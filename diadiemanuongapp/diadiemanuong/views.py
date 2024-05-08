@@ -15,11 +15,12 @@ from .models import Category, Restaurant, Dish, User, Comment, Like, DonHang
 from oauth2_provider.models import AccessToken
 from django.db.models import Q, Sum
 
+from oauth2_provider.models import Application
 
 
 # Create your views here.
 
-class CategoryViewSet(viewsets.ViewSet, generics.RetrieveAPIView, generics.ListAPIView ):
+class CategoryViewSet(viewsets.ViewSet, generics.RetrieveAPIView, generics.ListAPIView):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
 
@@ -136,8 +137,6 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.ListAPIView
     pagination_class = UserPaginator
     parser_classes = [parsers.MultiPartParser, parsers.JSONParser]
 
-
-
     # xác nhận quyền
     def get_permissions(self):
         if self.action in ['get_current']:
@@ -151,7 +150,7 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.ListAPIView
             "request": request
         }).data, status=status.HTTP_200_OK)
 
-    #api get user
+    # api get user
     @action(methods=['get'], url_path="current", detail=False)
     def user_info(request):
         access_token = request.META['HTTP_AUTHORIZATION'].split(' ')[1]

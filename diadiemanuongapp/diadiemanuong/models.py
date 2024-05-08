@@ -43,7 +43,6 @@ class Restaurant(BaseModel):
     tags = models.ManyToManyField('Tag')
 
     def __str__(self):
-        # self.__private_field = "price"
         return self.name
 
     # danh mục không được trùng nhau

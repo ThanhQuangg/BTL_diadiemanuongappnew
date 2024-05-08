@@ -41,7 +41,7 @@ class RestaurantForm(forms.ModelForm):
 
     class Meta:
         model = Restaurant
-        fields = '__all__'
+        fields = ['id', 'name', 'address', 'image', 'description', 'tags']
 
 
 class DishForm(forms.ModelForm):
@@ -49,7 +49,7 @@ class DishForm(forms.ModelForm):
 
     class Meta:
         model = Dish
-        fields = '__all__'
+        fields = ['id', 'name', 'description', 'price', 'image', 'tags']
 
 
 class CategoryAdmin(admin.ModelAdmin):
