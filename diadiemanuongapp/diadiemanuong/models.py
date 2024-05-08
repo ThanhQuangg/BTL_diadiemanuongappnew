@@ -27,15 +27,9 @@ class BaseModel(models.Model):
 class Category(BaseModel):
     name = models.CharField(max_length=50, null=False)
     image = models.ImageField(upload_to="category/%Y/%m", null=True)
+
     def __str__(self):
         return self.name
-
-
-
-
-
-
-
 
 
 class Restaurant(BaseModel):
@@ -45,10 +39,11 @@ class Restaurant(BaseModel):
     address = models.CharField(max_length=255)
     image = models.ImageField(upload_to="restaurants/%Y/%m", null=True)
     category = models.ForeignKey(Category, on_delete=models.RESTRICT, related_query_name='restaurants')
+    price = models.DecimalField(max_digits=10, decimal_places=2, null=True)
     tags = models.ManyToManyField('Tag')
 
     def __str__(self):
-        # self.__private_field = "tags"
+        # self.__private_field = "price"
         return self.name
 
     # danh mục không được trùng nhau
@@ -60,7 +55,7 @@ class Dish(BaseModel):
     name = models.CharField(max_length=255)
     # add ckeditor de format noi dung
     description = RichTextField(null=True)
-    price = models.DecimalField(max_digits=10,decimal_places=2)
+    price = models.DecimalField(max_digits=10, decimal_places=2)
     image = models.ImageField(upload_to="dish/%Y/%m", null=True)
     restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE)
     address = models.CharField(max_length=255, null=True)
@@ -74,12 +69,14 @@ class Dish(BaseModel):
     class Meta:
         unique_together = ('name', 'restaurant')
 
+
 class DonHang(BaseModel):
     restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE)
     dish = models.ForeignKey(Dish, on_delete=models.CASCADE)
     so_luong = models.PositiveIntegerField()
     ngay_dat_hang = models.DateTimeField(auto_now_add=True)
     thanh_toan = models.DecimalField(max_digits=10, decimal_places=2)
+
 
 class Tag(BaseModel):
     name = models.CharField(max_length=50, unique=True)
@@ -109,6 +106,3 @@ class Like(Interaction):
 
 class Rating(Interaction):
     rate = models.SmallIntegerField(default=0)
-
-
-

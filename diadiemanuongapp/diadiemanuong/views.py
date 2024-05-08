@@ -16,6 +16,7 @@ from oauth2_provider.models import AccessToken
 from django.db.models import Q, Sum
 
 
+
 # Create your views here.
 
 class CategoryViewSet(viewsets.ViewSet, generics.RetrieveAPIView, generics.ListAPIView ):
@@ -129,11 +130,13 @@ class CategoryView(View):
         pass
 
 
-class UserViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.ListAPIView):
+class UserViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.ListAPIView, generics.RetrieveAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     pagination_class = UserPaginator
     parser_classes = [parsers.MultiPartParser, parsers.JSONParser]
+
+
 
     # xác nhận quyền
     def get_permissions(self):
