@@ -1,10 +1,8 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from ckeditor.fields import RichTextField
-from django.core.validators import RegexValidator
 from cloudinary.models import CloudinaryField
-from django.db.models import Sum, Avg
-from django.db.models.functions import Extract
+
 
 
 class User(AbstractUser):
@@ -37,6 +35,8 @@ class Restaurant(BaseModel):
     # add ckeditor de format noi dung
     description = RichTextField(null=True)
     address = models.CharField(max_length=255)
+    latitude = models.DecimalField(max_digits=10, decimal_places=7, null=True)
+    longitude = models.DecimalField(max_digits=10, decimal_places=7, null=True)
     image = models.ImageField(upload_to="restaurants/%Y/%m", null=True)
     category = models.ForeignKey(Category, on_delete=models.RESTRICT, related_query_name='restaurants')
     price = models.DecimalField(max_digits=10, decimal_places=2, null=True)
@@ -69,12 +69,7 @@ class Dish(BaseModel):
         unique_together = ('name', 'restaurant')
 
 
-class DonHang(BaseModel):
-    restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE)
-    dish = models.ForeignKey(Dish, on_delete=models.CASCADE)
-    so_luong = models.PositiveIntegerField()
-    ngay_dat_hang = models.DateTimeField(auto_now_add=True)
-    thanh_toan = models.DecimalField(max_digits=10, decimal_places=2)
+
 
 
 class Tag(BaseModel):
@@ -105,3 +100,32 @@ class Like(Interaction):
 
 class Rating(Interaction):
     rate = models.SmallIntegerField(default=0)
+
+class Order(BaseModel):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='orders',null=True)
+    address = models.CharField(max_length=255)
+    order_date = models.DateTimeField(auto_now_add=True)
+    total_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    shipping_fee = models.DecimalField(max_digits=10, decimal_places=2)
+    note = models.TextField(blank=True)
+    payment_method = models.CharField(max_length=50)
+    company_name = models.CharField(max_length=255, blank=True)
+    company_address = models.CharField(max_length=255, blank=True)
+
+    def __str__(self):
+        return f"Order #{self.id} - {self.user.username}"
+
+class OrderDetail(models.Model):
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
+    product_id = models.PositiveIntegerField()  # Assuming product has an ID field
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='order_details',null=True)
+    quantity = models.PositiveIntegerField()
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    total = models.DecimalField(max_digits=10, decimal_places=2)
+
+    def save(self, *args, **kwargs):
+        self.total = self.quantity * self.price
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"Order Detail: {self.order} - {self.product_id} (x{self.quantity})"

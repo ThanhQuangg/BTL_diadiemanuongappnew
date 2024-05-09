@@ -1,4 +1,4 @@
-from .models import Category, Restaurant, Dish, Tag, User, Comment
+from .models import Category, Restaurant, Dish, Tag, User, Comment, Order
 from rest_framework import serializers
 
 
@@ -99,4 +99,13 @@ class CommentSerializer(serializers.ModelSerializer):
         fields = ['id', 'content', 'user']
 
 
+class OrderSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Order
+        fields = ['user', 'address', 'order_date', 'total_amount', 'shipping_fee', 'note', 'payment_method', 'company_name', 'company_address']
 
+
+class OrderDetailSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Order
+        fields = ['order', 'product_id', 'user', 'quantity', 'price', 'total']

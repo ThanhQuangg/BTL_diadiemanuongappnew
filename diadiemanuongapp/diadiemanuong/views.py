@@ -10,8 +10,8 @@ from rest_framework.response import Response
 from . import perms
 from .paginator import RestaurantPaginator, DishPaginator, UserPaginator
 from .serializer import CategorySerializer, RestaurantSerializer, DishSerializer, UserSerializer, CommentSerializer, \
-    DishSerializerDetail
-from .models import Category, Restaurant, Dish, User, Comment, Like, DonHang
+    DishSerializerDetail, OrderSerializer
+from .models import Category, Restaurant, Dish, User, Comment, Like, Order, OrderDetail
 from oauth2_provider.models import AccessToken
 from django.db.models import Q, Sum
 
@@ -158,3 +158,23 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.ListAPIView
         user = token.user
         # Lấy thông tin người dùng và xử lý
         return Response({'message': 'Hello, ' + user.username})
+
+
+class OrderViewSet(viewsets.ViewSet, generics.ListAPIView):
+    queryset = Order.objects.all()
+    serializer_class = OrderSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    @action(methods=['get'], url_path="current", detail=False)
+    def get_queryset(self):
+        user = self.request.query_params.get('user')
+        if user:
+            return Order.objects.filter(user=user)
+        return Order.objects.all()
+
+    @action(methods=['post'], url_path='order', detail=True)
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
