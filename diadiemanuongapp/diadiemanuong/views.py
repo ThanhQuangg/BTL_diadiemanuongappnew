@@ -4,7 +4,7 @@ from django.shortcuts import render
 from django.http import HttpResponse, HttpRequest
 from django.views import View
 from rest_framework.decorators import action
-from rest_framework import viewsets, generics, status, permissions, parsers
+from rest_framework import viewsets, generics, status, permissions, parsers, filters
 from rest_framework.response import Response
 
 from . import perms
@@ -15,7 +15,6 @@ from .models import Category, Restaurant, Dish, User, Comment, Like, Order, Orde
 from oauth2_provider.models import AccessToken
 from django.db.models import Q, Sum
 
-from oauth2_provider.models import Application
 
 
 # Create your views here.
@@ -45,6 +44,7 @@ class RestaurantViewSet(viewsets.ViewSet, generics.RetrieveAPIView, generics.Lis
             queries = queries.filter(name__icontains=q)
         return queries
 
+
     # api lien ket restaurant voi dish qua restaurant_id de lay
     # danh sach dish trong restaurant
     @action(methods=['get'], detail=True)
@@ -68,12 +68,18 @@ class DishViewSet(viewsets.ViewSet, generics.RetrieveAPIView, generics.ListAPIVi
             return [permissions.IsAuthenticated()]
         return self.permission_classes
 
+
+
     def get_queryset(self):
         queries = self.queryset
         q = self.request.query_params.get('q')
         if q:
             queries = queries.filter(name__icontains=q)
+        x = self.request.query_params.get('x')
+        if x:
+            queries = queries.filter(price__icontains=x)
         return queries
+
 
     # api comment
     @action(methods=['post'], url_path="comments", detail=True)
@@ -165,13 +171,28 @@ class OrderViewSet(viewsets.ViewSet, generics.ListAPIView):
     serializer_class = OrderSerializer
     permission_classes = [permissions.IsAuthenticated]
 
-    @action(methods=['get'], url_path="current", detail=False)
-    def get_queryset(self):
-        user = self.request.query_params.get('user')
-        if user:
-            return Order.objects.filter(user=user)
-        return Order.objects.all()
 
+
+    @action(methods=['get'], url_path="current", detail=False)
+    # def get_queryset(self):
+    #     user = self.request.user.id
+    #     return Order.objects.filter(user=user)
+    # def get_queryset(self):
+    #     queries = self.queryset
+    #     user = self.request.query_params.get('user')
+    #     if user:
+    #         queries = queries.filter(id__icontains=user)
+    #         return queries
+    #     return Order.objects.all()
+    def get_queryset(self):
+        user_id = self.request.user.id  # Get user ID from the logged-in user
+        return Order.objects.filter(user=user_id)
+    # def get_queryset(self):
+    #     queries = self.queryset
+    #     x = self.request.query_params.get('x')
+    #     if x:
+    #         queries = queries.filter(name__icontains=q)
+    #     return queries
     @action(methods=['post'], url_path='order', detail=True)
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)

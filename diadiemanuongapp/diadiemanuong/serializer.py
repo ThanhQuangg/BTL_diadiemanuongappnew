@@ -71,7 +71,7 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['first_name', 'last_name', 'email', 'username', 'password', 'avatar']
+        fields = ['id', 'first_name', 'last_name', 'email', 'username', 'password', 'avatar']
         # không hiển thị lại password
         extra_kwargs = {
             'password': {
@@ -102,8 +102,7 @@ class CommentSerializer(serializers.ModelSerializer):
 class OrderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
-        fields = ['user', 'address', 'order_date', 'total_amount', 'shipping_fee', 'note', 'payment_method', 'company_name', 'company_address']
-
+        fields = '__all__'
 
 class OrderDetailSerializer(serializers.ModelSerializer):
     class Meta:

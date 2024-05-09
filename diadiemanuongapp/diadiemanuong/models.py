@@ -1,3 +1,4 @@
+from django.contrib.auth import get_user_model
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from ckeditor.fields import RichTextField
@@ -102,15 +103,15 @@ class Rating(Interaction):
     rate = models.SmallIntegerField(default=0)
 
 class Order(BaseModel):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='orders',null=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='orders', null=True)
     address = models.CharField(max_length=255)
     order_date = models.DateTimeField(auto_now_add=True)
     total_amount = models.DecimalField(max_digits=10, decimal_places=2)
     shipping_fee = models.DecimalField(max_digits=10, decimal_places=2)
     note = models.TextField(blank=True)
     payment_method = models.CharField(max_length=50)
-    company_name = models.CharField(max_length=255, blank=True)
-    company_address = models.CharField(max_length=255, blank=True)
+    restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE, related_name='ordersgem', null=True)
+
 
     def __str__(self):
         return f"Order #{self.id} - {self.user.username}"
@@ -122,7 +123,8 @@ class OrderDetail(models.Model):
     quantity = models.PositiveIntegerField()
     price = models.DecimalField(max_digits=10, decimal_places=2)
     total = models.DecimalField(max_digits=10, decimal_places=2)
-
+    dish = models.ForeignKey(Dish, on_delete=models.CASCADE, related_name='items', null=True)
+    restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE, related_name='items', null=True)
     def save(self, *args, **kwargs):
         self.total = self.quantity * self.price
         super().save(*args, **kwargs)
