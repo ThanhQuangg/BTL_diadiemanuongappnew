@@ -84,13 +84,20 @@ class DishViewSet(viewsets.ViewSet, generics.RetrieveAPIView, generics.ListAPIVi
     # api comment
     @action(methods=['post'], url_path="comments", detail=True)
     def add_comment(self, request, pk):
-        comment = Comment.objects.create(user=request.user, dish=self.get_object(), content=request.data.get('content'))
+        comment = Comment.objects.create(user=request.user, dish=self.get_object(),  content=request.data.get('content'))
         comment.save()
 
-        return Response(CommentSerializer(comment, context={
+        return Response(CommentSerializer(comment.data, context={
             'request': request
         }).data, status=status.HTTP_201_CREATED)
 
+    @action(methods=['get'], url_path='comment', detail=True)
+    def get(self, request, pk):
+        comments = Comment.objects.filter(dish=self.get_object())
+
+        serializer = CommentSerializer(comments, many=True)
+        return Response(serializer.data,
+                        status=status.HTTP_200_OK)
     @action(methods=['post'], url_path='like', detail=True)
     def like(self, request, pk):
         like, create = Like.objects.get_or_create(user=request.user, dish=self.get_object())
@@ -102,20 +109,7 @@ class DishViewSet(viewsets.ViewSet, generics.RetrieveAPIView, generics.ListAPIVi
             "request": request
         }).data, status=status.HTTP_200_OK)
 
-    # @action(methods=['post'], url_path='rating', detail=True)
-    # def create(self, request):
-    #     data = request.data
-    #     serializer = DanhGiaSerializer(data=data)
-    #
-    # def retrieve(self, request, pk=None):
-    #     # Xử lý request lấy thông tin đánh giá cụ thể
-    #     ...
-    #
-    # def update(self, request, pk=None):
-    #     # Xử lý request cập nhật thông tin đánh giá
-    #     ...
-    #
-    # def destroy(self, request, pk=None):
+
 
 
 class CommentViewSet(viewsets.ViewSet, generics.DestroyAPIView, generics.UpdateAPIView):
@@ -123,6 +117,16 @@ class CommentViewSet(viewsets.ViewSet, generics.DestroyAPIView, generics.UpdateA
     serializer_class = CommentSerializer
     # xác nhận comment chính chủ (perms.py)
     permission_classes = [perms.OwnerPermission]
+
+    def get_permissions(self):
+        if self.request.method == 'GET':
+            return [permissions.AllowAny()]
+
+        return [permissions.IsAuthenticated()]
+
+
+
+
 
 
 class CategoryView(View):
@@ -174,9 +178,9 @@ class OrderViewSet(viewsets.ViewSet, generics.ListAPIView):
 
 
     @action(methods=['get'], url_path="current", detail=False)
-    # def get_queryset(self):
-    #     user = self.request.user.id
-    #     return Order.objects.filter(user=user)
+    def get_queryset(self):
+        username = self.request.user.username
+        return Order.objects.filter(username__contains=username)
     # def get_queryset(self):
     #     queries = self.queryset
     #     user = self.request.query_params.get('user')
@@ -184,9 +188,7 @@ class OrderViewSet(viewsets.ViewSet, generics.ListAPIView):
     #         queries = queries.filter(id__icontains=user)
     #         return queries
     #     return Order.objects.all()
-    def get_queryset(self):
-        user_id = self.request.user.id  # Get user ID from the logged-in user
-        return Order.objects.filter(user=user_id)
+
     # def get_queryset(self):
     #     queries = self.queryset
     #     x = self.request.query_params.get('x')
@@ -194,8 +196,9 @@ class OrderViewSet(viewsets.ViewSet, generics.ListAPIView):
     #         queries = queries.filter(name__icontains=q)
     #     return queries
     @action(methods=['post'], url_path='order', detail=True)
-    def post(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    def post(self, request):
+        serializer = OrderSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
