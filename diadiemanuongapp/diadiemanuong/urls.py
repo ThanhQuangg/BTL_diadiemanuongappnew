@@ -11,7 +11,10 @@ router.register('restaurants', views.RestaurantViewSet, basename='restaurants')
 router.register('dishes', views.DishViewSet, basename='dishes')
 router.register('users', views.UserViewSet, basename='users')
 router.register('comments', views.CommentViewSet, basename='comments')
+router.register('ratings', views.RatingViewSet, basename='ratings')
 router.register('orders', views.OrderViewSet, basename='orders')
+router.register('order-details', views.OrderDetailViewSet, basename='order-details')
+
 
 urlpatterns = [
     path('', include(router.urls)),

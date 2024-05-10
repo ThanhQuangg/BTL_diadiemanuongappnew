@@ -5,7 +5,6 @@ from ckeditor.fields import RichTextField
 from cloudinary.models import CloudinaryField
 
 
-
 class User(AbstractUser):
     avatar = CloudinaryField('avatar', null=True)
 
@@ -70,9 +69,6 @@ class Dish(BaseModel):
         unique_together = ('name', 'restaurant')
 
 
-
-
-
 class Tag(BaseModel):
     name = models.CharField(max_length=50, unique=True)
 
@@ -100,10 +96,12 @@ class Like(Interaction):
 
 
 class Rating(Interaction):
-    rate = models.SmallIntegerField(default=0)
+    # rate = models.SmallIntegerField(default=0)
+    rate = models.DecimalField(max_digits=10, decimal_places=2)
+
 
 class Order(BaseModel):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='orders', null=True)
+    # user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='orders', null=True)
     username = models.CharField(max_length=255, null=True)
     address = models.CharField(max_length=255)
     order_date = models.DateTimeField(auto_now_add=True)
@@ -111,24 +109,25 @@ class Order(BaseModel):
     shipping_fee = models.DecimalField(max_digits=10, decimal_places=2)
     note = models.TextField(blank=True)
     payment_method = models.CharField(max_length=50)
-    restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE, related_name='ordersgem', null=True)
-
+    restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE, related_name='orders', null=True)
 
     def __str__(self):
-        return f"Order #{self.id} - {self.user.username}"
+        return self.username
+
 
 class OrderDetail(models.Model):
-    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
-    product_id = models.PositiveIntegerField()  # Assuming product has an ID field
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='order_details',null=True)
-    quantity = models.PositiveIntegerField()
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items', null=True)
+    # user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='order_details', null=True)
+    username = models.CharField(max_length=255, null=True)
+    quantity = models.IntegerField()
     price = models.DecimalField(max_digits=10, decimal_places=2)
     total = models.DecimalField(max_digits=10, decimal_places=2)
     dish = models.ForeignKey(Dish, on_delete=models.CASCADE, related_name='items', null=True)
-    restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE, related_name='items', null=True)
-    def save(self, *args, **kwargs):
-        self.total = self.quantity * self.price
-        super().save(*args, **kwargs)
-
+    # restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE, related_name='items', null=True)
+    restaurant_name = models.CharField(max_length=255, null=True)
+    restaurant_image = models.ImageField(upload_to="restaurants_image/%Y/%m", null=True)
     def __str__(self):
-        return f"Order Detail: {self.order} - {self.product_id} (x{self.quantity})"
+        return self.username
+        # return f"get_total_price: {self.price}(x{self.quantity})"
+
+

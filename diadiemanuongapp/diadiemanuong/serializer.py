@@ -1,4 +1,4 @@
-from .models import Category, Restaurant, Dish, Tag, User, Comment, Order
+from .models import Category, Restaurant, Dish, Tag, User, Comment, Order, OrderDetail, Rating
 from rest_framework import serializers
 
 
@@ -11,6 +11,7 @@ class CategorySerializer(serializers.ModelSerializer):
             if request:
                 return request.build_absolute_uri("/static/%s" % obj.image.name)
             return "/static/%s" % obj.image.name
+
     class Meta:
         model = Category
         fields = ['id', 'name', 'image']
@@ -68,7 +69,6 @@ class DishSerializerDetail(DishSerializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
-
     class Meta:
         model = User
         fields = ['id', 'first_name', 'last_name', 'email', 'username', 'password', 'avatar']
@@ -79,9 +79,8 @@ class UserSerializer(serializers.ModelSerializer):
             }
         }
 
-
-
         # băm password
+
     def create(self, validated_data):
         data = validated_data.copy()
         user = User(**data)
@@ -94,10 +93,17 @@ class UserSerializer(serializers.ModelSerializer):
 class CommentSerializer(serializers.ModelSerializer):
     user = UserSerializer()
 
-
     class Meta:
         model = Comment
-        fields = ['id', 'content', 'user']
+        fields = ['id', 'content', 'user', 'created_date', 'updated_date']
+
+
+class RatingSerializer(serializers.ModelSerializer):
+    user = UserSerializer()
+
+    class Meta:
+        model = Rating
+        fields = ['id', 'rate', 'user']
 
 
 class OrderSerializer(serializers.ModelSerializer):
@@ -105,7 +111,11 @@ class OrderSerializer(serializers.ModelSerializer):
         model = Order
         fields = '__all__'
 
+
 class OrderDetailSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Order
-        fields = ['order', 'product_id', 'user', 'quantity', 'price', 'total']
+        model = OrderDetail
+        fields = '__all__'
+
+
+
