@@ -54,6 +54,8 @@ class RestaurantViewSet(viewsets.ViewSet, generics.RetrieveAPIView, generics.Lis
         }).data, status=status.HTTP_200_OK)
 
 
+
+
 class DishViewSet(viewsets.ViewSet, generics.RetrieveAPIView, generics.ListAPIView):
     queryset = Dish.objects.all()
     serializer_class = DishSerializer
@@ -186,56 +188,15 @@ class OrderViewSet(viewsets.ViewSet, generics.ListAPIView):
     def get_queryset(self):
         username = self.request.user.username
         return Order.objects.filter(username__contains=username)
-
     @action(methods=['post'], url_path='order', detail=True)
     def post(self, request):
-    #     serializer = OrderSerializer(data=request.data)
-    #     if serializer.is_valid():
-    #         serializer.save()
-    #         return Response(serializer.data, status=status.HTTP_201_CREATED)
-    #     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        serializer = OrderSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        # if request.method == 'POST':
-        #     order = OrderViewSet(request.POST)
-        #     order_detail = [OrderDetailViewSet(request.POST, prefix=str(i)) for i in
-        #                           range(request.POST.get('num_order_details', 0))]
-        #
-        #     if order.is_valid() and all(order_detail_form.is_valid() for order_detail_form in order_detail):
-        #         order = order.save()
-        #
-        #         for order_detail_form in order_detail:
-        #             order_detail = order_detail_form.save(commit=False)
-        #             order_detail.order = order
-        #             order_detail.save()
-        #
-        #         return redirect('order_list')
-        #
-        # else:
-        #     order = OrderViewSet()
-        #     order_detail = [OrderDetailViewSet(prefix=str(i)) for i in range(1)]  # Initial form
-        #
-        # context = {
-        #     'order': order,
-        #     'order_detail': order_detail,
-        # }
-        # # return render(request, 'create_order.html', context)
-        #
-        # return Response(OrderDetailSerializer(order_detail, context=context).data, status=status.HTTP_201_CREATED)
-        if request.method == 'POST':
-            data = json.loads(request.body)
-            order = Order(**data)
-            try:
-                order.save()
-                new_order_id = order.id
-                order_details_to_update = OrderDetail.objects.filter(username=order.username, order_id=None)
-                for order_detail in order_details_to_update:
-                    order_detail.order_id = new_order_id
-                    order_detail.save()
-                return JsonResponse({'new_order_id': new_order_id}, status=201)
-            except Exception as e:
-                return JsonResponse({'error': str(e)}, status=500)
-        else:
-            return JsonResponse({'error': 'Method not allowed'}, status=405)
+
 
 class OrderDetailViewSet(viewsets.ViewSet, generics.ListAPIView, generics.UpdateAPIView):
     queryset = OrderDetail.objects.all()

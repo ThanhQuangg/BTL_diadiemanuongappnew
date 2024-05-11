@@ -101,7 +101,6 @@ class Rating(Interaction):
 
 
 class Order(BaseModel):
-    # user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='orders', null=True)
     username = models.CharField(max_length=255, null=True)
     address = models.CharField(max_length=255)
     order_date = models.DateTimeField(auto_now_add=True)
@@ -109,7 +108,10 @@ class Order(BaseModel):
     shipping_fee = models.DecimalField(max_digits=10, decimal_places=2)
     note = models.TextField(blank=True)
     payment_method = models.CharField(max_length=50)
-    restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE, related_name='orders', null=True)
+    restaurant_name = models.CharField(max_length=255, null=True)
+    restaurant_image = models.ImageField(upload_to="restaurants_image/%Y/%m", null=True)
+
+
 
     def __str__(self):
         return self.username
@@ -128,6 +130,6 @@ class OrderDetail(models.Model):
     restaurant_image = models.ImageField(upload_to="restaurants_image/%Y/%m", null=True)
     def __str__(self):
         return self.username
-        # return f"get_total_price: {self.price}(x{self.quantity})"
+
 
 
