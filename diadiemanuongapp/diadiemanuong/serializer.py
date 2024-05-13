@@ -104,7 +104,7 @@ class RatingSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Rating
-        fields = ['id', 'rate', 'user']
+        fields = ['id', 'rate', 'user', 'created_date', 'updated_date']
 
 
 class PaymentTypeSerializer(serializers.ModelSerializer):
@@ -125,10 +125,10 @@ class OrderSerializer(serializers.ModelSerializer):
 
 
 class OrderDetailSerializer(serializers.ModelSerializer):
-    dish = DishSerializer()
-
+    dish = DishSerializer
+    order_info = OrderSerializer(source='order', read_only=True)
     class Meta:
         model = OrderDetail
-        fields = ["id", "dish", "quantity", "order", "user", "total", "restaurant"]
+        fields = ["id", "dish", "quantity", "user", "total", "restaurant", 'order_info']
 
 

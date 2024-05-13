@@ -111,8 +111,7 @@ class Like(Interaction):
 
 
 class Rating(Interaction):
-    # rate = models.SmallIntegerField(default=0)
-    rate = models.DecimalField(max_digits=10, decimal_places=2)
+    rate = models.DecimalField(max_digits=5, decimal_places=2)
 
 
 class PaymentType(models.Model):
@@ -143,7 +142,7 @@ class OrderDetail(models.Model):
     quantity = models.IntegerField()
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items', null=True)
 
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='order_details', null=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True)
 
     # price = models.DecimalField(max_digits=10, decimal_places=2)
     total = models.DecimalField(max_digits=10, decimal_places=2)
