@@ -12,8 +12,7 @@ from . import perms, serializer
 from .paginator import RestaurantPaginator, DishPaginator, UserPaginator
 from .serializer import CategorySerializer, RestaurantSerializer, DishSerializer, UserSerializer, CommentSerializer, \
     DishSerializerDetail, OrderSerializer, RatingSerializer, OrderDetailSerializer  # OrderDetailSerializer
-from .models import Category, Restaurant, Dish, User, Comment, Like, Order, OrderDetail, Rating, PaymentType, \
-    Bill
+from .models import Category, Restaurant, Dish, User, Comment, Like, Order, OrderDetail, Rating, PaymentType
 from oauth2_provider.models import AccessToken
 from django.db.models import Q, Sum
 
@@ -289,8 +288,7 @@ class OrderViewSet(viewsets.ViewSet, generics.ListAPIView):
             order_details = OrderDetail.objects.filter(order=order)
             serialized_order_details = OrderDetailSerializer(order_details, many=True).data
 
-            bill = Bill.objects.filter(order=order).first()
-            bill_data = {'total_amount': bill.total_amount if bill else None}
+
 
             order_data = {
                 'id': order.id,
@@ -303,7 +301,7 @@ class OrderViewSet(viewsets.ViewSet, generics.ListAPIView):
                 'paymentType': order.paymentType.id,
                 'shippingType': order.shippingType.id,
                 'order_details': serialized_order_details,
-                'bill_info': bill_data,
+
             }
 
             order_details_data.append(order_data)
