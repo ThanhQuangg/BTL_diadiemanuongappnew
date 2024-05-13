@@ -1,4 +1,5 @@
-from .models import Category, Restaurant, Dish, Tag, User, Comment, Order, OrderDetail, Rating
+from .models import Category, Restaurant, Dish, Tag, User, Comment, Order, OrderDetail, Rating, \
+    PaymentType
 from rest_framework import serializers
 
 
@@ -52,7 +53,7 @@ class DishSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Dish
-        fields = ['id', 'name', 'description', 'created_date', 'updated_date', 'image', 'address', 'price', 'tags']
+        fields = ['id', 'name', 'description', 'created_date', 'updated_date', 'image',  'price', 'tags']
 
 
 class DishSerializerDetail(DishSerializer):
@@ -106,18 +107,28 @@ class RatingSerializer(serializers.ModelSerializer):
         fields = ['id', 'rate', 'user']
 
 
+class PaymentTypeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PaymentType
+        fields = '__all__'
+
+
 class OrderSerializer(serializers.ModelSerializer):
+    user_info = UserSerializer(source='user', read_only=True)
+    paymentType = PaymentTypeSerializer(read_only=True)
 
 
     class Meta:
         model = Order
-        fields = '__all__'
+        fields = ["id", "shipping_address", "note", "shipping_fee", "status_pay", "status_order",
+                  "created_at", "user_info", "paymentType"]
 
 
 class OrderDetailSerializer(serializers.ModelSerializer):
+    dish = DishSerializer()
+
     class Meta:
         model = OrderDetail
-        fields = '__all__'
-
+        fields = ["id", "dish", "quantity", "order", "user", "total", "restaurant"]
 
 

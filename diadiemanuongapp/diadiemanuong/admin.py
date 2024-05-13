@@ -41,7 +41,7 @@ class RestaurantForm(forms.ModelForm):
 
     class Meta:
         model = Restaurant
-        fields = ['id', 'name', 'address', 'image', 'description', 'tags']
+        fields = ['id', 'name', 'address', 'image', 'description', 'tags', 'category']
 
 
 class DishForm(forms.ModelForm):

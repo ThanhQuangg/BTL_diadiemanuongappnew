@@ -109,7 +109,7 @@ WSGI_APPLICATION = 'diadiemanuongapp.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'diadiemanuongapp',
+        'NAME': 'diadiemanuongapp1',
         'USER': 'root',
         'PASSWORD': 'Lthtrang123',
         'HOST': ''
@@ -158,8 +158,8 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-Client_id = "UDn7MYxIpSNQCxAtiYgFwDv9df603cevEdgQFnXG"
-Client_secret = "G8AzwYDWLHI8Yvg7irMf82RYQjsbxZC8v4oOATtVjjaLxfGiPsz9c8lQ1upZDBrB4Lz9jJog1nij8ZHutnQPfYL2rtQ8Ip2fAXPTnNrjl32GcjYdGGLkFYMmaRihyogD"
+Client_id = "THgZpjg0baEHq1I6BLEJwO1ffwoELUnjw0bvF583"
+Client_secret = "qkTLB8exOGqraJuKVHLIUHWg2q073n7URbS33wuUzSZ86I783U8wxwHhQdCN4CoqUwyHn8LmcoEOCfgVbEeb7AT1o9dR2NtJZuzDlu2LT0DMVHOTtbTdSyVkLnX5qJvq"
 
 OAUTH2_PROVIDER = {
     'OAUTH2_BACKEND_CLASS': 'oauth2_provider.oauth2_backends.JSONOAuthLibCore'

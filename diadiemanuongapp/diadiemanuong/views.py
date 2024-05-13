@@ -8,11 +8,12 @@ from rest_framework import viewsets, generics, status, permissions, parsers, fil
 from rest_framework.response import Response
 from rest_framework.utils import json
 
-from . import perms
+from . import perms, serializer
 from .paginator import RestaurantPaginator, DishPaginator, UserPaginator
 from .serializer import CategorySerializer, RestaurantSerializer, DishSerializer, UserSerializer, CommentSerializer, \
-    DishSerializerDetail, OrderSerializer, OrderDetailSerializer, RatingSerializer
-from .models import Category, Restaurant, Dish, User, Comment, Like, Order, OrderDetail, Rating
+    DishSerializerDetail, OrderSerializer, RatingSerializer, OrderDetailSerializer  # OrderDetailSerializer
+from .models import Category, Restaurant, Dish, User, Comment, Like, Order, OrderDetail, Rating, PaymentType, \
+    Bill
 from oauth2_provider.models import AccessToken
 from django.db.models import Q, Sum
 
@@ -52,8 +53,6 @@ class RestaurantViewSet(viewsets.ViewSet, generics.RetrieveAPIView, generics.Lis
         return Response(RestaurantSerializer(d, many=True, context={
             'request': request
         }).data, status=status.HTTP_200_OK)
-
-
 
 
 class DishViewSet(viewsets.ViewSet, generics.RetrieveAPIView, generics.ListAPIView):
@@ -182,20 +181,134 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.ListAPIView
 class OrderViewSet(viewsets.ViewSet, generics.ListAPIView):
     queryset = Order.objects.all()
     serializer_class = OrderSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    # permission_classes = [permissions.IsAuthenticated]
 
-    @action(methods=['get'], url_path="current", detail=False)
-    def get_queryset(self):
-        username = self.request.user.username
-        return Order.objects.filter(username__contains=username)
-    @action(methods=['post'], url_path='order', detail=True)
-    def post(self, request):
-        serializer = OrderSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    # @action(methods=['get'], url_path="current", detail=False)
+    # def get_queryset(self):
+    #     username = self.request.user.username
+    #     return Order.objects.filter(username__contains=username)
+    # @action(methods=['post'], url_path='order', detail=True)
+    # def post(self, request):
+    #     serializer = OrderSerializer(data=request.data)
+    #     if serializer.is_valid():
+    #         serializer.save()
+    #         return Response(serializer.data, status=status.HTTP_201_CREATED)
+    #     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    @action(methods=['POST'], detail=False)
+    def create_order(self, request):
+        # user = request.user
+        shipping_address = request.data.get('shipping_address')
+        shipping_fee = request.data.get('shipping_fee')
+        note = request.data.get('note')
+        total_amount = request.data.get('total_amount')
+        # status_pay = request.data.get('status_pay')
+        # status_order = request.data.get('status_order')
+        user = int(request.data.get('user_id'))
+        paymentType_id = int(request.data.get('paymentType_id'))
+        # status_pay = 1 if paymentType_id == 2 else 0
 
+        if request.user.is_authenticated:
+            if not shipping_address or not shipping_fee or not note or not paymentType_id:
+                return Response({'error': 'Thông tin  không đủ'}, status=status.HTTP_400_BAD_REQUEST)
+            try:
+                user = User.objects.get(id=user)
+            except User.DoesNotExist:
+                return Response("Không tìm thấy tài khoản.", status=status.HTTP_400_BAD_REQUEST)
+
+            try:
+                payment_type = PaymentType.objects.get(id=paymentType_id)
+            except PaymentType.DoesNotExist:
+                return Response("Không tìm thấy loại thanh toán.", status=status.HTTP_400_BAD_REQUEST)
+
+            order = Order.objects.create(shipping_address=shipping_address, shipping_fee=shipping_fee, note=note,
+                                         # status_pay=status_pay,
+                                         # status_order=0,
+                                         total_amount= total_amount, user=user, paymentType=payment_type)
+
+            order.save()
+            return Response(serializer.OrderSerializer(order).data, status=status.HTTP_200_OK)
+        else:
+            return Response('Bạn Không có quyền mua hàng')
+
+    @action(methods=['POST'], detail=True)
+    # def create_orderdetail(self, request, pk):
+    #     order_id = Order.objects.get(pk=pk)
+    #     dish_ids = request.data.get('dish_id[]')
+    #     quantities = request.data.get('quantity[]')
+    #     orderdetails = []
+    #     total = 0
+
+    def create_orderdetail(self, request, pk):
+        order_id = Order.objects.get(pk=pk)
+        dish_ids = request.data.get('dish_id', [])
+        quantities = request.data.get('quantity', [])
+        restaurant_id = request.data.get('restaurant_id')
+        total = request.data.get('total')
+        user = int(request.data.get('user_id'))
+        orderdetails = []
+        if request.user.is_authenticated:
+            try:
+                user = User.objects.get(id=user)
+            except User.DoesNotExist:
+                return Response("Không tìm thấy tài khoản.", status=status.HTTP_400_BAD_REQUEST)
+        for dish_id, quantity_pro in zip(dish_ids, quantities):
+            dish = Dish.objects.get(pk=dish_id)
+
+            if dish.quantity < int(quantity_pro):
+                return Response({'error': 'Không đủ số lượng sản phẩm trong kho'}, status=status.HTTP_400_BAD_REQUEST)
+
+            orderdetail, created = OrderDetail.objects.get_or_create(dish=dish, quantity=quantity_pro,
+                                                                     order=order_id, total=total, user=user,
+                                                                     restaurant_id=restaurant_id)
+
+            dish.quantity -= int(quantity_pro)
+            dish.save()
+
+            total_price = dish.price * int(quantity_pro)
+            total += total_price
+            orderdetails.append(orderdetail)
+
+        return Response({'order_detail': OrderDetailSerializer(orderdetails, many=True).data, 'total': total})
+
+    @action(detail=False, methods=['GET'])
+    def get_orders_confirm_by_account(self, request):
+        user_id = request.query_params.get('user_id')
+
+        if not user_id:
+            return Response({'error': 'Missing account ID'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return Response({'error': 'Account not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        orders = Order.objects.filter(user=user, status_order=True).order_by('-id')
+        order_details_data = []
+
+        for order in orders:
+            order_details = OrderDetail.objects.filter(order=order)
+            serialized_order_details = OrderDetailSerializer(order_details, many=True).data
+
+            bill = Bill.objects.filter(order=order).first()
+            bill_data = {'total_amount': bill.total_amount if bill else None}
+
+            order_data = {
+                'id': order.id,
+                'shipping_address': order.shipping_address,
+                'note': order.note,
+                'shipping_fee': order.shipping_fee,
+                'status_pay': order.status_pay,
+                'status_order': order.status_order,
+                'created_at': order.created_at,
+                'paymentType': order.paymentType.id,
+                'shippingType': order.shippingType.id,
+                'order_details': serialized_order_details,
+                'bill_info': bill_data,
+            }
+
+            order_details_data.append(order_data)
+
+        return Response(order_details_data, status=status.HTTP_200_OK)
 
 
 class OrderDetailViewSet(viewsets.ViewSet, generics.ListAPIView, generics.UpdateAPIView):
@@ -203,17 +316,22 @@ class OrderDetailViewSet(viewsets.ViewSet, generics.ListAPIView, generics.Update
     serializer_class = OrderDetailSerializer
     permission_classes = [permissions.IsAuthenticated]
 
-    @action(methods=['post'], url_path='orderdetail', detail=True)
-    def post(self, request):
-        serializer = OrderDetailSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    # @action(methods=['post'], url_path='orderdetail', detail=True)
+    # def post(self, request):
+    #     serializer = OrderDetailSerializer(data=request.data)
+    #     if serializer.is_valid():
+    #         serializer.save()
+    #         return Response(serializer.data, status=status.HTTP_201_CREATED)
+    #     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    @action(methods=['get'], url_path="orderdetail", detail=False)
-    def get_queryset(self):
-        username = self.request.user.username
-        return OrderDetail.objects.filter(username__contains=username)
+    # @action(methods=['get'], url_path="orderdetail", detail=False)
+    # def get_queryset(self):
+    #     user_id = self.request.user.user_id
+    #     return OrderDetail.objects.filter(username__contains=username)
 
 
+class PaymentViewSet(viewsets.ViewSet, generics.ListAPIView,
+                     generics.CreateAPIView, generics.UpdateAPIView,
+                     generics.DestroyAPIView):
+    queryset = PaymentType.objects.all()
+    serializer_class = serializer.PaymentTypeSerializer

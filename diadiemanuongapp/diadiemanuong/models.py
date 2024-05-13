@@ -5,8 +5,22 @@ from ckeditor.fields import RichTextField
 from cloudinary.models import CloudinaryField
 
 
+class UserRole(models.Model):
+    name_role = models.CharField(max_length=255, null=False)
+
+    def __str__(self):
+        return self.name_role
+
+
 class User(AbstractUser):
     avatar = CloudinaryField('avatar', null=True)
+    # full_name = models.CharField(max_length=255, null=True)
+    # date_of_birth = models.DateField(null=True)
+    # gender = models.BooleanField(null=True)
+    address = models.CharField(max_length=255, null=True)
+    phone = models.CharField(max_length=15, null=True)
+    # role = models.ForeignKey(UserRole, on_delete=models.CASCADE, related_name="roles", null=True)
+    # social_user_id = models.CharField(max_length=255, unique=True, null=True, blank=True)
 
     def __str__(self):
         return self.username
@@ -57,7 +71,8 @@ class Dish(BaseModel):
     price = models.DecimalField(max_digits=10, decimal_places=2)
     image = models.ImageField(upload_to="dish/%Y/%m", null=True)
     restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE)
-    address = models.CharField(max_length=255, null=True)
+    # address = models.CharField(max_length=255, null=True)
+    quantity = models.IntegerField(null= True)
     tags = models.ManyToManyField('Tag')
 
     def __str__(self):
@@ -100,36 +115,51 @@ class Rating(Interaction):
     rate = models.DecimalField(max_digits=10, decimal_places=2)
 
 
-class Order(BaseModel):
-    username = models.CharField(max_length=255, null=True)
-    address = models.CharField(max_length=255)
-    order_date = models.DateTimeField(auto_now_add=True)
-    total_amount = models.DecimalField(max_digits=10, decimal_places=2)
-    shipping_fee = models.DecimalField(max_digits=10, decimal_places=2)
-    note = models.TextField(blank=True)
-    payment_method = models.CharField(max_length=50)
-    restaurant_name = models.CharField(max_length=255, null=True)
-    restaurant_image = models.ImageField(upload_to="restaurants_image/%Y/%m", null=True)
-
-
+class PaymentType(models.Model):
+    name_paymentType = models.CharField(max_length=255, null=False)
 
     def __str__(self):
-        return self.username
+        return self.name_paymentType
+
+
+class Order(BaseModel):
+    shipping_address = models.CharField(max_length=255)
+    shipping_fee = models.FloatField()
+    note = models.TextField(null=True)
+    # status_pay = models.BooleanField(default=False)
+    # status_order = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True)
+    paymentType = models.ForeignKey(PaymentType, on_delete=models.CASCADE, null=True)
+    total_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True)
+    restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE, null=True)
+
+    def __str__(self):
+        return "Đơn hàng [" + self.user.username + "]" + " + Địa chỉ [" + self.shipping_address + "]"
 
 
 class OrderDetail(models.Model):
-    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items', null=True)
-    # user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='order_details', null=True)
-    username = models.CharField(max_length=255, null=True)
+    dish = models.ForeignKey(Dish, on_delete=models.CASCADE, null=True)
     quantity = models.IntegerField()
-    price = models.DecimalField(max_digits=10, decimal_places=2)
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items', null=True)
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='order_details', null=True)
+
+    # price = models.DecimalField(max_digits=10, decimal_places=2)
     total = models.DecimalField(max_digits=10, decimal_places=2)
-    dish = models.ForeignKey(Dish, on_delete=models.CASCADE, related_name='items', null=True)
-    # restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE, related_name='items', null=True)
-    restaurant_name = models.CharField(max_length=255, null=True)
-    restaurant_image = models.ImageField(upload_to="restaurants_image/%Y/%m", null=True)
+    restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE, null=True)
+
+
     def __str__(self):
-        return self.username
+        return self.dish.name_product + " - Đơn hàng [username: " + self.order.user.username + "]"
 
 
+class Bill(models.Model):
+    bill_code = models.CharField(max_length=200, null=True, blank=True)
+    total_amount = models.FloatField(default=0, null=True, blank=True)
+    bill_transactionNo = models.CharField(max_length=200, null=True, blank=True)
+    order = models.OneToOneField(Order, on_delete=models.CASCADE, related_name='bill', null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
 
+    def __str__(self):
+        return f"Bill - {self.bill_code} + Order - {self.order}"
