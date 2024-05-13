@@ -94,7 +94,7 @@ class DishViewSet(viewsets.ViewSet, generics.RetrieveAPIView, generics.ListAPIVi
         }).data, status=status.HTTP_201_CREATED)
 
     @action(methods=['get'], url_path='comment', detail=True)
-    def get(self, request, pk):
+    def get_comment(self, request, pk):
         comments = Comment.objects.filter(dish=self.get_object())
 
         serializer = CommentSerializer(comments, many=True)
@@ -102,7 +102,7 @@ class DishViewSet(viewsets.ViewSet, generics.RetrieveAPIView, generics.ListAPIVi
                         status=status.HTTP_200_OK)
 
     @action(methods=['get'], url_path='rating', detail=True)
-    def get(self, request, pk):
+    def get_rating(self, request, pk):
         ratings = Rating.objects.filter(dish=self.get_object())
 
         serializer = RatingSerializer(ratings, many=True)
