@@ -123,19 +123,19 @@ class PaymentType(models.Model):
 
 
 class Order(BaseModel):
-    shipping_address = models.CharField(max_length=255)
+    address = models.CharField(max_length=255)
     shipping_fee = models.FloatField()
     note = models.TextField(null=True)
     # status_pay = models.BooleanField(default=False)
     # status_order = models.BooleanField(default=False)
-    created_at = models.DateTimeField(auto_now_add=True)
+    order_date = models.DateTimeField(auto_now_add=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True)
     paymentType = models.ForeignKey(PaymentType, on_delete=models.CASCADE, null=True)
     total_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True)
     restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE, null=True)
 
     def __str__(self):
-        return "Đơn hàng [" + self.user.username + "]" + " + Địa chỉ [" + self.shipping_address + "]"
+        return "Đơn hàng [" + self.user.username + "]" + " + Địa chỉ [" + self.address + "]"
 
 
 class OrderDetail(models.Model):

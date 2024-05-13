@@ -197,7 +197,7 @@ class OrderViewSet(viewsets.ViewSet, generics.ListAPIView):
     @action(methods=['POST'], detail=False)
     def create_order(self, request):
         # user = request.user
-        shipping_address = request.data.get('shipping_address')
+        address = request.data.get('address')
         shipping_fee = request.data.get('shipping_fee')
         note = request.data.get('note')
         total_amount = request.data.get('total_amount')
@@ -208,7 +208,7 @@ class OrderViewSet(viewsets.ViewSet, generics.ListAPIView):
         # status_pay = 1 if paymentType_id == 2 else 0
 
         if request.user.is_authenticated:
-            if not shipping_address or not shipping_fee or not note or not paymentType_id:
+            if not address or not shipping_fee or not note or not paymentType_id:
                 return Response({'error': 'Thông tin  không đủ'}, status=status.HTTP_400_BAD_REQUEST)
             try:
                 user = User.objects.get(id=user)
@@ -220,7 +220,7 @@ class OrderViewSet(viewsets.ViewSet, generics.ListAPIView):
             except PaymentType.DoesNotExist:
                 return Response("Không tìm thấy loại thanh toán.", status=status.HTTP_400_BAD_REQUEST)
 
-            order = Order.objects.create(shipping_address=shipping_address, shipping_fee=shipping_fee, note=note,
+            order = Order.objects.create(address=address, shipping_fee=shipping_fee, note=note,
                                          # status_pay=status_pay,
                                          # status_order=0,
                                          total_amount= total_amount, user=user, paymentType=payment_type)
@@ -294,12 +294,12 @@ class OrderViewSet(viewsets.ViewSet, generics.ListAPIView):
 
             order_data = {
                 'id': order.id,
-                'shipping_address': order.shipping_address,
+                'address': order.address,
                 'note': order.note,
                 'shipping_fee': order.shipping_fee,
                 'status_pay': order.status_pay,
                 'status_order': order.status_order,
-                'created_at': order.created_at,
+                'order_date': order.order_date,
                 'paymentType': order.paymentType.id,
                 'shippingType': order.shippingType.id,
                 'order_details': serialized_order_details,
