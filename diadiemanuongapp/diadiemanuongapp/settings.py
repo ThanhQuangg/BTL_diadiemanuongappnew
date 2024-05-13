@@ -158,8 +158,8 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-Client_id = "THgZpjg0baEHq1I6BLEJwO1ffwoELUnjw0bvF583"
-Client_secret = "qkTLB8exOGqraJuKVHLIUHWg2q073n7URbS33wuUzSZ86I783U8wxwHhQdCN4CoqUwyHn8LmcoEOCfgVbEeb7AT1o9dR2NtJZuzDlu2LT0DMVHOTtbTdSyVkLnX5qJvq"
+Client_id = "xV7QAIRYnczDXiiBJ8Ex5T5bz2I1z1jIT9ITeLQp"
+Client_secret = "yfW1VA8Cd4doWqVhaZdIVByaqzyNvJa6NAWvx2AlcGK4SGW2IFZz1yGslE8khepsWnJ9OdLloMRFrNTnyFelblLfWL3V5wRCeOCaBOZaXEYvSPLnHqzZv5KlH36dJBHT"
 
 OAUTH2_PROVIDER = {
     'OAUTH2_BACKEND_CLASS': 'oauth2_provider.oauth2_backends.JSONOAuthLibCore'
