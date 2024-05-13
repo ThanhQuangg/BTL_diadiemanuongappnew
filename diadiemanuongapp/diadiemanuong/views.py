@@ -1,20 +1,16 @@
-from django.contrib.admin import action
-from django.contrib.auth import authenticate, login
+from django.http import HttpResponseForbidden
 from django.shortcuts import render, redirect
-from django.http import HttpResponse, HttpRequest, JsonResponse
 from django.views import View
 from rest_framework.decorators import action
 from rest_framework import viewsets, generics, status, permissions, parsers, filters, request
 from rest_framework.response import Response
-from rest_framework.utils import json
-
 from . import perms, serializer
 from .paginator import RestaurantPaginator, DishPaginator, UserPaginator
 from .serializer import CategorySerializer, RestaurantSerializer, DishSerializer, UserSerializer, CommentSerializer, \
     DishSerializerDetail, OrderSerializer, RatingSerializer, OrderDetailSerializer  # OrderDetailSerializer
 from .models import Category, Restaurant, Dish, User, Comment, Like, Order, OrderDetail, Rating, PaymentType
 from oauth2_provider.models import AccessToken
-from django.db.models import Q, Sum
+from django import forms
 
 
 # Create your views here.
@@ -193,7 +189,13 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.ListAPIView
         # Lấy thông tin người dùng và xử lý
         return Response({'message': 'Hello, ' + user.username})
 
+    def admin_approval_required(view_func):
+        def _wrapped_view(request, *args, **kwargs):
+            if request.user.role != 'admin':
+                return HttpResponseForbidden("You don't have permission to access this page.")
+            return view_func(request, *args, **kwargs)
 
+        return _wrapped_view
 class OrderViewSet(viewsets.ViewSet, generics.ListAPIView):
     queryset = Order.objects.all()
     serializer_class = OrderSerializer
@@ -339,3 +341,27 @@ class PaymentViewSet(viewsets.ViewSet, generics.ListAPIView,
                      generics.DestroyAPIView):
     queryset = PaymentType.objects.all()
     serializer_class = serializer.PaymentTypeSerializer
+
+
+
+# class CustomUserRegistrationForm(forms.ModelForm):
+#     password1 = forms.CharField(label='Password', widget=forms.PasswordInput)
+#     password2 = forms.CharField(label='Password confirmation', widget=forms.PasswordInput)
+#
+#     class Meta:
+#         model = CustomUser
+#         fields = ['username', 'email', 'password1', 'password2']
+#
+#     def clean_password2(self):
+#         password1 = self.cleaned_data.get("password1")
+#         password2 = self.cleaned_data.get("password2")
+#         if password1 and password2 and password1 != password2:
+#             raise forms.ValidationError("Passwords don't match")
+#         return password2
+#
+#     def save(self, commit=True):
+#         user = super().save(commit=False)
+#         user.status = CustomUser.PENDING
+#         if commit:
+#             user.save()
+#         return user

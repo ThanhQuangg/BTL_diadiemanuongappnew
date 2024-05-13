@@ -5,11 +5,18 @@ from ckeditor.fields import RichTextField
 from cloudinary.models import CloudinaryField
 
 
-class UserRole(models.Model):
-    name_role = models.CharField(max_length=255, null=False)
-
-    def __str__(self):
-        return self.name_role
+# class CustomUser(AbstractUser):
+#     PENDING = 'pending'
+#     APPROVED = 'approved'
+#     REJECTED = 'rejected'
+#
+#     STATUS_CHOICES = [
+#         (PENDING, 'Pending'),
+#         (APPROVED, 'Approved'),
+#         (REJECTED, 'Rejected'),
+#     ]
+#
+#     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=PENDING)
 
 
 class User(AbstractUser):
@@ -71,7 +78,7 @@ class Dish(BaseModel):
     price = models.DecimalField(max_digits=10, decimal_places=2)
     image = models.ImageField(upload_to="dish/%Y/%m", null=True)
     restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE)
-    # address = models.CharField(max_length=255, null=True)
+    address = models.CharField(max_length=255, null=True)
     quantity = models.IntegerField(null= True)
     tags = models.ManyToManyField('Tag')
 
