@@ -36,7 +36,7 @@ class RestaurantViewSet(viewsets.ViewSet, generics.RetrieveAPIView, generics.Lis
     queryset = Restaurant.objects.all()
     serializer_class = RestaurantSerializer
     pagination_class = RestaurantPaginator
-    permission_classes = [permissions.IsAuthenticated]
+    # permission_classes = [permissions.IsAuthenticated]
 
     # lay query (kw) duoc truyen vao de filter
     def get_queryset(self):
