@@ -49,8 +49,9 @@ class Restaurant(BaseModel):
     image = models.ImageField(upload_to="restaurants/%Y/%m", null=True)
     category = models.ForeignKey(Category, on_delete=models.RESTRICT, related_query_name='restaurants')
     price = models.DecimalField(max_digits=10, decimal_places=2, null=True)
-
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True)
     active = models.BooleanField(default=False)
+    is_approved = models.BooleanField(default=False)
 
 
     # owner = models.ForeignKey(User, on_delete=models.CASCADE)

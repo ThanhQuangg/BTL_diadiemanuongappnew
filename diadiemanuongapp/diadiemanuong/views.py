@@ -55,37 +55,24 @@ class RestaurantViewSet(viewsets.ViewSet, generics.RetrieveAPIView, generics.Lis
             'request': request
         }).data, status=status.HTTP_200_OK)
 
-    # # api yêu cầu quyền
-    # @action(methods=['post'], detail=False)
-    # def register_store(self, request):
-    #     if request.method == 'POST':
-    #         restaurant_data = request.data
-    #         restaurant_data['user'] = request.user.id  # Gán user là người dùng hiện tại
-    #         restaurant_serializer = RestaurantSerializer(data=restaurant_data)
-    #         if restaurant_serializer.is_valid():
-    #             restaurant = restaurant_serializer.save()
-    #
-    #             # Tạo hoặc lấy nhóm "Restaurant Owners"
-    #             restaurant_owner_group, created = Group.objects.get_or_create(name='Restaurant Owners')
-    #             restaurant_owner_group.user_set.add(request.user)
-    #
-    #             return Response(restaurant_serializer.data, status=status.HTTP_201_CREATED)
-    #         return Response(restaurant_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    #     # api admin chấp nhận
-    # @action(methods=['post'], detail=False)
-    # def approve_store(request, restaurant_id):
-    #     try:
-    #         restaurant = Restaurant.objects.get(id=restaurant_id)
-    #         # Kiểm tra quyền của người dùng, chỉ admin mới có quyền xác nhận
-    #         if request.user.is_staff:
-    #             restaurant.is_verified = True
-    #             restaurant.save()
-    #             return Response({'message': 'Store approved successfully.'}, status=status.HTTP_200_OK)
-    #         else:
-    #             return Response({'error': 'Permission denied.'}, status=status.HTTP_403_FORBIDDEN)
-    #     except Restaurant.DoesNotExist:
-    #         return Response({'error': 'Store not found.'}, status=status.HTTP_404_NOT_FOUND)
+    #api post restaurant
+    @action(methods=['post'], detail=True)
+    def create_restaurant(self, request, pk):
+        comment = Comment.objects.create(user=request.user, dish=self.get_object(),
+                                         content=request.data.get('content'))
+        comment.save()
 
+        return Response(CommentSerializer(comment, context={
+            'request': request
+        }).data, status=status.HTTP_201_CREATED)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user, is_approved=False)  # Save the user and set is_approved to False
+
+    def get_queryset(self):
+        if self.request.user.is_staff:
+            return Restaurant.objects.all()  # Admins can see all restaurants
+        return Restaurant.objects.filter(user=self.request.user)  # Users see only their own restaurants
 
 class DishViewSet(viewsets.ViewSet, generics.RetrieveAPIView, generics.ListAPIView):
     queryset = Dish.objects.all()
@@ -96,7 +83,7 @@ class DishViewSet(viewsets.ViewSet, generics.RetrieveAPIView, generics.ListAPIVi
     permission_classes = [permissions.AllowAny()]
 
     def get_permissions(self):
-        if self.action in ['add_comment', 'like', 'rating']:
+        if self.action in ['add_comment', 'like', 'create_rating']:
             return [permissions.IsAuthenticated()]
         return self.permission_classes
 
@@ -259,7 +246,7 @@ class OrderViewSet(viewsets.ViewSet, generics.ListAPIView):
 
             order = Order.objects.create(address=address, shipping_fee=shipping_fee, note=note,
                                          total_amount=total_amount, user=user, paymentType=payment_type,
-                                         restaurant=restaurant_id)
+                                         restaurant_id  =restaurant_id)
 
             order.save()
             return Response(serializer.OrderSerializer(order).data, status=status.HTTP_200_OK)

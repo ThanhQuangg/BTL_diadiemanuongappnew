@@ -20,6 +20,28 @@ class CategorySerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'image']
 
 
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['id', 'first_name', 'last_name', 'email', 'username', 'password', 'avatar']
+        # không hiển thị lại password
+        extra_kwargs = {
+            'password': {
+                'write_only': True
+            }
+        }
+
+        # băm password
+
+    def create(self, validated_data):
+        data = validated_data.copy()
+        user = User(**data)
+        user.set_password(data['password'])
+        user.save()
+
+        return user
+
+
 class TagSerializer(serializers.ModelSerializer):
     class Meta:
         model = Tag
@@ -40,6 +62,7 @@ class RestaurantSerializer(serializers.ModelSerializer):
     class Meta:
         model = Restaurant
         fields = ['id', 'name', 'address', 'image', 'description', 'price', 'tags']
+        read_only_fields = ['is_approved', 'user']  # Prevent these fields from being set via the API
 
     def create(self, validated_data):
         tags_data = validated_data.pop('tags')
@@ -47,6 +70,7 @@ class RestaurantSerializer(serializers.ModelSerializer):
         for tag_data in tags_data:
             Tag.objects.create(restaurant=restaurant, **tag_data)
         return restaurant
+
 
 class DishSerializer(serializers.ModelSerializer):
     tags = TagSerializer(many=True)
@@ -77,28 +101,6 @@ class DishSerializerDetail(DishSerializer):
         fields = DishSerializer.Meta.fields + ['liked']
 
 
-class UserSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = ['id', 'first_name', 'last_name', 'email', 'username', 'password', 'avatar']
-        # không hiển thị lại password
-        extra_kwargs = {
-            'password': {
-                'write_only': True
-            }
-        }
-
-        # băm password
-
-    def create(self, validated_data):
-        data = validated_data.copy()
-        user = User(**data)
-        user.set_password(data['password'])
-        user.save()
-
-        return user
-
-
 class CommentSerializer(serializers.ModelSerializer):
     user = UserSerializer()
 
@@ -124,6 +126,7 @@ class PaymentTypeSerializer(serializers.ModelSerializer):
 class OrderSerializer(serializers.ModelSerializer):
     user_info = UserSerializer(source='user', read_only=True)
     paymentType = PaymentTypeSerializer(read_only=True)
+
     # restaurant = RestaurantSerializer(read_only=True)
     class Meta:
         model = Order
