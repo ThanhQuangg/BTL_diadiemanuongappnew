@@ -62,7 +62,7 @@ class RestaurantSerializer(serializers.ModelSerializer):
     class Meta:
         model = Restaurant
         fields = ['id', 'name', 'address', 'image', 'description', 'price', 'tags']
-        read_only_fields = ['is_approved', 'user']  # Prevent these fields from being set via the API
+        # read_only_fields = ['is_approved', 'user']  # Prevent these fields from being set via the API
 
     def create(self, validated_data):
         tags_data = validated_data.pop('tags')
@@ -126,12 +126,11 @@ class PaymentTypeSerializer(serializers.ModelSerializer):
 class OrderSerializer(serializers.ModelSerializer):
     user_info = UserSerializer(source='user', read_only=True)
     paymentType = PaymentTypeSerializer(read_only=True)
-
-    # restaurant = RestaurantSerializer(read_only=True)
     class Meta:
         model = Order
         fields = ["id", "address", "note", "shipping_fee",
-                  "order_date", "user_info", "paymentType", "restaurant"]
+                  "order_date", "user_info", "paymentType"]
+            #, "restaurant"]
 
 
 class OrderDetailSerializer(serializers.ModelSerializer):

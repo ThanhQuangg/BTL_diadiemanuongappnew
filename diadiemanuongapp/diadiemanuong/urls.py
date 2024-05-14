@@ -17,7 +17,7 @@ router.register('roles', views.RoleViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),
-path('request-activation/', request_activation, name='request_activation'),
+    path('request-activation/', request_activation, name='request_activation'),
     path('request-activation/', request_activation, name='request_activation'),
     path('review-activation-requests/', review_activation_requests, name='review_activation_requests'),
     path('update-activation-request/<int:request_id>/<str:status>/', update_activation_request,
