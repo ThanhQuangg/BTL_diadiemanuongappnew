@@ -1,5 +1,7 @@
+from rest_framework.serializers import ModelSerializer
+
 from .models import Category, Restaurant, Dish, Tag, User, Comment, Order, OrderDetail, Rating, \
-    PaymentType
+    PaymentType, UserRole
 from rest_framework import serializers
 
 
@@ -39,6 +41,12 @@ class RestaurantSerializer(serializers.ModelSerializer):
         model = Restaurant
         fields = ['id', 'name', 'address', 'image', 'description', 'price', 'tags']
 
+    def create(self, validated_data):
+        tags_data = validated_data.pop('tags')
+        restaurant = Restaurant.objects.create(**validated_data)
+        for tag_data in tags_data:
+            Tag.objects.create(restaurant=restaurant, **tag_data)
+        return restaurant
 
 class DishSerializer(serializers.ModelSerializer):
     tags = TagSerializer(many=True)
@@ -53,7 +61,7 @@ class DishSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Dish
-        fields = ['id', 'name', 'description', 'created_date', 'updated_date', 'image',  'price', 'tags']
+        fields = ['id', 'name', 'description', 'created_date', 'updated_date', 'image', 'price', 'tags']
 
 
 class DishSerializerDetail(DishSerializer):
@@ -116,19 +124,23 @@ class PaymentTypeSerializer(serializers.ModelSerializer):
 class OrderSerializer(serializers.ModelSerializer):
     user_info = UserSerializer(source='user', read_only=True)
     paymentType = PaymentTypeSerializer(read_only=True)
-
-
+    # restaurant = RestaurantSerializer(read_only=True)
     class Meta:
         model = Order
         fields = ["id", "address", "note", "shipping_fee",
-                  "order_date", "user_info", "paymentType"]
+                  "order_date", "user_info", "paymentType", "restaurant"]
 
 
 class OrderDetailSerializer(serializers.ModelSerializer):
     dish = DishSerializer
     order_info = OrderSerializer(source='order', read_only=True)
+
     class Meta:
         model = OrderDetail
         fields = ["id", "dish", "quantity", "user", "total", "restaurant", 'order_info']
 
 
+class RoleSerializer(ModelSerializer):
+    class Meta:
+        model = UserRole
+        fields = ['id', "name_role"]

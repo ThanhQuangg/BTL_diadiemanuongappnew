@@ -6,27 +6,27 @@ from django import forms
 from ckeditor_uploader.widgets import CKEditorUploadingWidget
 
 from .dao import count_restaurant_by_cat
-from .models import Category, Restaurant, User, Tag ,Dish
-
+from .models import Category, Restaurant, User, Tag, Dish
 
 
 # Register your models here.
 class RestaurantAppAdminSite(admin.AdminSite):
     site_header = "HỆ THỐNG ĐỊA ĐIỂM ĂN UỐNG"
 
-
-
     def get_urls(self):
         return [
-                   path('diadiemanuong-stats/', self.stats_view)
-               ] + super().get_urls()
+            path('diadiemanuong-stats/', self.stats_view)
+        ] + super().get_urls()
 
     def stats_view(self, request):
         stats = count_restaurant_by_cat()
-        return TemplateResponse(request, 'admin/stats.html',context={
+        return TemplateResponse(request, 'admin/stats.html', context={
             'stats': stats
         })
+
+
 admin_site = RestaurantAppAdminSite(name="myapp")
+
 
 class RestaurantTagInlineAdmin(admin.TabularInline):
     model = Restaurant.tags.through
@@ -35,13 +35,14 @@ class RestaurantTagInlineAdmin(admin.TabularInline):
 class DishTagInlineAdmin(admin.TabularInline):
     model = Dish.tags.through
 
-#tao form de upload anh bang CKEditor
+
+# tao form de upload anh bang CKEditor
 class RestaurantForm(forms.ModelForm):
     description = forms.CharField(widget=CKEditorUploadingWidget)
 
     class Meta:
         model = Restaurant
-        fields = ['id', 'name', 'address', 'image', 'description', 'tags', 'category']
+        fields = ['id', 'name', 'address', 'latitude', 'longitude', 'image', 'description', 'tags', 'category']
 
 
 class DishForm(forms.ModelForm):
@@ -74,7 +75,7 @@ class RestaurantAdmin(admin.ModelAdmin):
     def ava(self, obj):
         if obj:
             return mark_safe(
-                '<img src="/static/{url}" width="120" />'\
+                '<img src="/static/{url}" width="120" />' \
                     .format(url=obj.image.name)
             )
 
@@ -93,10 +94,7 @@ class DishAdmin(admin.ModelAdmin):
             )
 
 
-
-
-
-#Register model here.
+# Register model here.
 admin_site.register(Category, CategoryAdmin)
 admin_site.register(Restaurant, RestaurantAdmin)
 admin_site.register(User)

@@ -15,7 +15,6 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
@@ -26,7 +25,6 @@ SECRET_KEY = 'django-insecure-8+jxn*s!rm#96$6n436o17(%0^3afemgu)@1b%envfda*%_t-k
 DEBUG = True
 
 ALLOWED_HOSTS = []
-
 
 # Application definition
 
@@ -49,7 +47,7 @@ INSTALLED_APPS = [
 
 CKEDITOR_UPLOAD_PATH = "ckeditor/images/"
 
-#ủy quyền cho django tương tác cloudinary
+# ủy quyền cho django tương tác cloudinary
 import cloudinary
 
 cloudinary.config(
@@ -68,16 +66,14 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-
-
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'oauth2_provider.contrib.rest_framework.OAuth2Authentication',
     )
 }
 
-
 import pymysql
+
 pymysql.install_as_MySQLdb()
 
 ROOT_URLCONF = 'diadiemanuongapp.urls'
@@ -86,7 +82,7 @@ MEDIA_ROOT = '%s/diadiemanuong/static/' % BASE_DIR
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR/'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -99,9 +95,7 @@ TEMPLATES = [
     },
 ]
 
-
 WSGI_APPLICATION = 'diadiemanuongapp.wsgi.application'
-
 
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
@@ -115,7 +109,6 @@ DATABASES = {
         'HOST': ''
     }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
@@ -135,7 +128,6 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/
 
@@ -147,7 +139,6 @@ USE_I18N = True
 
 USE_TZ = True
 
-
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
@@ -158,11 +149,12 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-Client_id = "xV7QAIRYnczDXiiBJ8Ex5T5bz2I1z1jIT9ITeLQp"
-Client_secret = "yfW1VA8Cd4doWqVhaZdIVByaqzyNvJa6NAWvx2AlcGK4SGW2IFZz1yGslE8khepsWnJ9OdLloMRFrNTnyFelblLfWL3V5wRCeOCaBOZaXEYvSPLnHqzZv5KlH36dJBHT"
+Client_id = "q5WbDE2JeZNIqWH4Hn246vnb9FzXI1ntE6BrSMah"
+Client_secret = "z6nXm91juotRwAxBTN7z4sjM3O2rWhxgEf41QxM4XhfDpVYxfvk5M0fkus9Uea8Mt74AdPrd6hoFKJSMJDIaeyxPetPp4zt7i5BL92bbdjoCqVbbmn2iJmhGxj6G8sdK"
 
 OAUTH2_PROVIDER = {
-    'OAUTH2_BACKEND_CLASS': 'oauth2_provider.oauth2_backends.JSONOAuthLibCore'
+    'OAUTH2_BACKEND_CLASS': 'oauth2_provider.oauth2_backends.JSONOAuthLibCore',
+
 }
 
 # ALLOWED_HOSTS = ['51ae-116-108-218-247.ngrok-free.app']

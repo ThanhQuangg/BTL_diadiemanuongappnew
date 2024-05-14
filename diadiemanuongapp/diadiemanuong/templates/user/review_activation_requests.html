@@ -1,0 +1,65 @@
+<!-- templates/your_app/review_activation_requests.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Review Activation Requests</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 50px;
+        }
+        h1 {
+            color: #333;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        table, th, td {
+            border: 1px solid #ccc;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .button {
+            padding: 5px 10px;
+            text-align: center;
+            color: white;
+            text-decoration: none;
+            border-radius: 3px;
+        }
+        .approve {
+            background-color: #4CAF50;
+        }
+        .deny {
+            background-color: #f44336;
+        }
+    </style>
+</head>
+<body>
+    <h1>Review Activation Requests</h1>
+    <table>
+        <tr>
+            <th>User</th>
+            <th>Restaurant Name</th>
+            <th>Message</th>
+            <th>Actions</th>
+        </tr>
+        {% for request in requests %}
+        <tr>
+            <td>{{ request.user.username }}</td>
+            <td>{{ request.restaurant_name }}</td>
+            <td>{{ request.message }}</td>
+            <td>
+                <a href="{% url 'update_activation_request' request.id 'approved' %}" class="button approve">Approve</a>
+                <a href="{% url 'update_activation_request' request.id 'denied' %}" class="button deny">Deny</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>

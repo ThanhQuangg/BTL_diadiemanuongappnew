@@ -1,34 +1,22 @@
 from django.contrib.auth import get_user_model
 from django.db import models
-from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import AbstractUser, Group
 from ckeditor.fields import RichTextField
 from cloudinary.models import CloudinaryField
 
 
-# class CustomUser(AbstractUser):
-#     PENDING = 'pending'
-#     APPROVED = 'approved'
-#     REJECTED = 'rejected'
-#
-#     STATUS_CHOICES = [
-#         (PENDING, 'Pending'),
-#         (APPROVED, 'Approved'),
-#         (REJECTED, 'Rejected'),
-#     ]
-#
-#     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=PENDING)
+class UserRole(models.Model):
+    name_role = models.CharField(max_length=255, null=False)
 
+    def __str__(self):
+        return self.name_role
 
 class User(AbstractUser):
     avatar = CloudinaryField('avatar', null=True)
-    # full_name = models.CharField(max_length=255, null=True)
-    # date_of_birth = models.DateField(null=True)
-    # gender = models.BooleanField(null=True)
     address = models.CharField(max_length=255, null=True)
     phone = models.CharField(max_length=15, null=True)
-    # role = models.ForeignKey(UserRole, on_delete=models.CASCADE, related_name="roles", null=True)
-    # social_user_id = models.CharField(max_length=255, unique=True, null=True, blank=True)
 
+    # is_restaurant_owner = models.BooleanField(default=False)
     def __str__(self):
         return self.username
 
@@ -61,6 +49,13 @@ class Restaurant(BaseModel):
     image = models.ImageField(upload_to="restaurants/%Y/%m", null=True)
     category = models.ForeignKey(Category, on_delete=models.RESTRICT, related_query_name='restaurants')
     price = models.DecimalField(max_digits=10, decimal_places=2, null=True)
+
+    active = models.BooleanField(default=False)
+
+
+    # owner = models.ForeignKey(User, on_delete=models.CASCADE)
+    # is_approved = models.BooleanField(default=False)  # Trạng thái duyệt từ admin
+
     tags = models.ManyToManyField('Tag')
 
     def __str__(self):
@@ -79,7 +74,7 @@ class Dish(BaseModel):
     image = models.ImageField(upload_to="dish/%Y/%m", null=True)
     restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE)
     address = models.CharField(max_length=255, null=True)
-    quantity = models.IntegerField(null= True)
+    quantity = models.IntegerField(null=True)
     tags = models.ManyToManyField('Tag')
 
     def __str__(self):
@@ -155,7 +150,17 @@ class OrderDetail(models.Model):
     total = models.DecimalField(max_digits=10, decimal_places=2)
     restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE, null=True)
 
-
     def __str__(self):
         return self.dish.name_product + " - Đơn hàng [username: " + self.order.user.username + "]"
 
+
+class ActivationRequest(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    restaurant_name = models.CharField(max_length=255)
+    message = models.TextField()
+    status = models.CharField(max_length=20, choices=[('pending', 'Pending'), ('approved', 'Approved'), ('denied', 'Denied')], default='pending')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f'{self.restaurant_name} - {self.status}'

@@ -1,5 +1,7 @@
+from django.contrib.admin.views.decorators import staff_member_required
+from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseForbidden
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.views import View
 from rest_framework.decorators import action
 from rest_framework import viewsets, generics, status, permissions, parsers, filters, request
@@ -7,10 +9,13 @@ from rest_framework.response import Response
 from . import perms, serializer
 from .paginator import RestaurantPaginator, DishPaginator, UserPaginator
 from .serializer import CategorySerializer, RestaurantSerializer, DishSerializer, UserSerializer, CommentSerializer, \
-    DishSerializerDetail, OrderSerializer, RatingSerializer, OrderDetailSerializer  # OrderDetailSerializer
-from .models import Category, Restaurant, Dish, User, Comment, Like, Order, OrderDetail, Rating, PaymentType
+    DishSerializerDetail, OrderSerializer, RatingSerializer, OrderDetailSerializer, RoleSerializer
+
+from .models import Category, Restaurant, Dish, User, Comment, Like, Order, OrderDetail, Rating, PaymentType, \
+    ActivationRequest, UserRole
 from oauth2_provider.models import AccessToken
 from django import forms
+from rest_framework.parsers import MultiPartParser, JSONParser
 
 
 # Create your views here.
@@ -31,6 +36,7 @@ class RestaurantViewSet(viewsets.ViewSet, generics.RetrieveAPIView, generics.Lis
     queryset = Restaurant.objects.all()
     serializer_class = RestaurantSerializer
     pagination_class = RestaurantPaginator
+    permission_classes = [permissions.IsAuthenticated]
 
     # lay query (kw) duoc truyen vao de filter
     def get_queryset(self):
@@ -48,6 +54,37 @@ class RestaurantViewSet(viewsets.ViewSet, generics.RetrieveAPIView, generics.Lis
         return Response(RestaurantSerializer(d, many=True, context={
             'request': request
         }).data, status=status.HTTP_200_OK)
+
+    # # api yêu cầu quyền
+    # @action(methods=['post'], detail=False)
+    # def register_store(self, request):
+    #     if request.method == 'POST':
+    #         restaurant_data = request.data
+    #         restaurant_data['user'] = request.user.id  # Gán user là người dùng hiện tại
+    #         restaurant_serializer = RestaurantSerializer(data=restaurant_data)
+    #         if restaurant_serializer.is_valid():
+    #             restaurant = restaurant_serializer.save()
+    #
+    #             # Tạo hoặc lấy nhóm "Restaurant Owners"
+    #             restaurant_owner_group, created = Group.objects.get_or_create(name='Restaurant Owners')
+    #             restaurant_owner_group.user_set.add(request.user)
+    #
+    #             return Response(restaurant_serializer.data, status=status.HTTP_201_CREATED)
+    #         return Response(restaurant_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    #     # api admin chấp nhận
+    # @action(methods=['post'], detail=False)
+    # def approve_store(request, restaurant_id):
+    #     try:
+    #         restaurant = Restaurant.objects.get(id=restaurant_id)
+    #         # Kiểm tra quyền của người dùng, chỉ admin mới có quyền xác nhận
+    #         if request.user.is_staff:
+    #             restaurant.is_verified = True
+    #             restaurant.save()
+    #             return Response({'message': 'Store approved successfully.'}, status=status.HTTP_200_OK)
+    #         else:
+    #             return Response({'error': 'Permission denied.'}, status=status.HTTP_403_FORBIDDEN)
+    #     except Restaurant.DoesNotExist:
+    #         return Response({'error': 'Store not found.'}, status=status.HTTP_404_NOT_FOUND)
 
 
 class DishViewSet(viewsets.ViewSet, generics.RetrieveAPIView, generics.ListAPIView):
@@ -189,18 +226,11 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.ListAPIView
         # Lấy thông tin người dùng và xử lý
         return Response({'message': 'Hello, ' + user.username})
 
-    def admin_approval_required(view_func):
-        def _wrapped_view(request, *args, **kwargs):
-            if request.user.role != 'admin':
-                return HttpResponseForbidden("You don't have permission to access this page.")
-            return view_func(request, *args, **kwargs)
 
-        return _wrapped_view
 class OrderViewSet(viewsets.ViewSet, generics.ListAPIView):
     queryset = Order.objects.all()
     serializer_class = OrderSerializer
     permission_classes = [permissions.IsAuthenticated]
-
 
     @action(methods=['POST'], detail=False)
     def create_order(self, request):
@@ -209,11 +239,10 @@ class OrderViewSet(viewsets.ViewSet, generics.ListAPIView):
         shipping_fee = request.data.get('shipping_fee')
         note = request.data.get('note')
         total_amount = request.data.get('total_amount')
-        # status_pay = request.data.get('status_pay')
-        # status_order = request.data.get('status_order')
         user = int(request.data.get('user_id'))
         paymentType_id = int(request.data.get('paymentType_id'))
-        # status_pay = 1 if paymentType_id == 2 else 0
+        restaurant_id = int(request.data.get('restaurant_id'))
+
 
         if request.user.is_authenticated:
             if not address or not shipping_fee or not note or not paymentType_id:
@@ -229,7 +258,8 @@ class OrderViewSet(viewsets.ViewSet, generics.ListAPIView):
                 return Response("Không tìm thấy loại thanh toán.", status=status.HTTP_400_BAD_REQUEST)
 
             order = Order.objects.create(address=address, shipping_fee=shipping_fee, note=note,
-                                         total_amount=total_amount, user=user, paymentType=payment_type)
+                                         total_amount=total_amount, user=user, paymentType=payment_type,
+                                         restaurant=restaurant_id)
 
             order.save()
             return Response(serializer.OrderSerializer(order).data, status=status.HTTP_200_OK)
@@ -269,10 +299,7 @@ class OrderViewSet(viewsets.ViewSet, generics.ListAPIView):
 
         return Response({'order_detail': OrderDetailSerializer(orderdetails, many=True).data, 'total': total})
 
-
-
     @action(detail=False, methods=['GET'])
-
     def get_orders_confirm_by_account(self, request):
 
         user_id = int(request.data.get('user_id'))
@@ -298,7 +325,9 @@ class OrderViewSet(viewsets.ViewSet, generics.ListAPIView):
                 'shipping_fee': order.shipping_fee,
                 'order_date': order.order_date,
                 'paymentType': order.paymentType.id,
+                # 'restaurant': order.restaurant.id,
                 'order_details': serialized_order_details,
+
 
             }
 
@@ -306,34 +335,33 @@ class OrderViewSet(viewsets.ViewSet, generics.ListAPIView):
 
         return Response(order_details_data, status=status.HTTP_200_OK)
 
-    @action(detail=False, methods=['GET'])
-    def get_order_detail(self, request):
-        order_id = int(request.data.get('order_id'))
-        if not order_id:
-            return Response({'error': 'Missing order ID'}, status=status.HTTP_400_BAD_REQUEST)
+    # @action(detail=False, methods=['GET'])
+    # def get_order_detail(self, request):
+    #     order_id = int(request.data.get('order_id'))
+    #     if not order_id:
+    #         return Response({'error': 'Missing order ID'}, status=status.HTTP_400_BAD_REQUEST)
+    #
+    #     try:
+    #         order = Order.objects.get(id=order_id)
+    #     except Order.DoesNotExist:
+    #         return Response({'error': 'Order not found'}, status=status.HTTP_404_NOT_FOUND)
+    #     order_details = OrderDetail.objects.filter(order=order)
+    #     data = []
+    #     for detail in order_details:
+    #         detail_data = {
+    #             'dish_name': detail.dish.name,
+    #             'quantity': detail.quantity,
+    #             'total': detail.total,
+    #             'restaurant_name': detail.restaurant.name,
+    #         }
+    #         data.append(detail_data)
+    #     return Response(data, status=status.HTTP_200_OK)
 
-        try:
-            order = Order.objects.get(id=order_id)
-        except Order.DoesNotExist:
-            return Response({'error': 'Order not found'}, status=status.HTTP_404_NOT_FOUND)
-        order_details = OrderDetail.objects.filter(order=order)
-        data = []
-        for detail in order_details:
-            detail_data = {
-                'dish_name': detail.dish.name,
-                'quantity': detail.quantity,
-                'total': detail.total,
-                'restaurant_name': detail.restaurant.name,
-            }
-            data.append(detail_data)
-        return Response(data, status=status.HTTP_200_OK)
 
 class OrderDetailViewSet(viewsets.ViewSet, generics.ListAPIView, generics.UpdateAPIView):
     queryset = OrderDetail.objects.all()
     serializer_class = OrderDetailSerializer
     permission_classes = [permissions.IsAuthenticated]
-
-
 
 
 class PaymentViewSet(viewsets.ViewSet, generics.ListAPIView,
@@ -343,25 +371,66 @@ class PaymentViewSet(viewsets.ViewSet, generics.ListAPIView,
     serializer_class = serializer.PaymentTypeSerializer
 
 
+# class RestaurantRegistrationView(generics.CreateAPIView):
+#     queryset = Restaurant.objects.all()
+#     serializer_class = RestaurantSerializer
+#     permission_classes = [permissions.IsAuthenticated]
+#
+#     def perform_create(self, serializer):
+#         user = self.request.user
+#         serializer.save(owner=user)
 
-# class CustomUserRegistrationForm(forms.ModelForm):
-#     password1 = forms.CharField(label='Password', widget=forms.PasswordInput)
-#     password2 = forms.CharField(label='Password confirmation', widget=forms.PasswordInput)
+# class RestaurantApprovalView(generics.UpdateAPIView):
+#     queryset = Restaurant.objects.all()
+#     serializer_class = RestaurantSerializer
+#     permission_classes = [permissions.IsAdminUser]
 #
-#     class Meta:
-#         model = CustomUser
-#         fields = ['username', 'email', 'password1', 'password2']
-#
-#     def clean_password2(self):
-#         password1 = self.cleaned_data.get("password1")
-#         password2 = self.cleaned_data.get("password2")
-#         if password1 and password2 and password1 != password2:
-#             raise forms.ValidationError("Passwords don't match")
-#         return password2
-#
-#     def save(self, commit=True):
-#         user = super().save(commit=False)
-#         user.status = CustomUser.PENDING
-#         if commit:
-#             user.save()
-#         return user
+#     @action(detail=False, methods=['POST'])
+#     def update(self, request, *args, **kwargs):
+#         instance = self.get_object()
+#         instance.is_approved = True
+#         instance.save()
+#         return Response({"message": "Restaurant approved successfully."})
+
+class ActivationRequestForm(forms.ModelForm):
+    class Meta:
+        model = ActivationRequest
+        fields = ['restaurant_name', 'message']
+
+@login_required
+def request_activation(request):
+    if request.method == 'POST':
+        form = ActivationRequestForm(request.POST)
+        if form.is_valid():
+            activation_request = form.save(commit=False)
+            activation_request.user = request.user
+            activation_request.save()
+            return redirect('activation_request_success')
+    else:
+        form = ActivationRequestForm()
+
+    return render(request, 'user/request_activation.html', {'form': form})
+@login_required
+def activation_request_success(request):
+    return render(request, 'user/activation_request_success.html')
+
+@staff_member_required
+def review_activation_requests(request):
+    requests = ActivationRequest.objects.filter(status='pending')
+    return render(request, 'user/review_activation_requests.html', {'requests': requests})
+
+@staff_member_required
+def update_activation_request(request, request_id, status):
+    activation_request = get_object_or_404(ActivationRequest, id=request_id)
+    activation_request.status = status
+    activation_request.save()
+    # Thêm logic để kích hoạt user nếu cần thiết
+    if status == 'approved':
+        activation_request.user.is_active = True
+        activation_request.user.save()
+    return redirect('review_activation_requests')
+
+class RoleViewSet(viewsets.ViewSet,
+                  generics.ListAPIView):
+    queryset = UserRole.objects.all()
+    serializer_class = RoleSerializer

@@ -1,0 +1,59 @@
+<!-- templates/your_app/request_activation.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Request Activation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 50px;
+        }
+        h1 {
+            color: #333;
+        }
+        form {
+            max-width: 500px;
+            margin: auto;
+            padding: 1em;
+            border: 1px solid #ccc;
+            border-radius: 1em;
+        }
+        form div + div {
+            margin-top: 1em;
+        }
+        label {
+            display: block;
+            margin-bottom: 0.5em;
+            color: #333333;
+        }
+        input, textarea {
+            font-family: Arial, sans-serif;
+            width: 100%;
+            box-sizing: border-box;
+            border: 1px solid #999;
+            padding: 0.5em;
+            font-size: 1em;
+        }
+        .button {
+            padding: 1em;
+            border: none;
+            border-radius: 1em;
+            background-color: #5fbae9;
+            font-size: 1em;
+            color: white;
+            cursor: pointer;
+        }
+        .button:hover {
+            background-color: #3f8abf;
+        }
+    </style>
+</head>
+<body>
+    <h1>Request Activation</h1>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="button">Submit</button>
+    </form>
+</body>
+</html>
