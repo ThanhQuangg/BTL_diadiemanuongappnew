@@ -9,7 +9,8 @@ from rest_framework.response import Response
 from . import perms, serializer
 from .paginator import RestaurantPaginator, DishPaginator, UserPaginator
 from .serializer import CategorySerializer, RestaurantSerializer, DishSerializer, UserSerializer, CommentSerializer, \
-    DishSerializerDetail, OrderSerializer, RatingSerializer, OrderDetailSerializer, RoleSerializer
+    DishSerializerDetail, OrderSerializer, RatingSerializer, OrderDetailSerializer, RoleSerializer, \
+    PaymentTypeSerializer
 from rest_framework.utils import json
 from django.http import HttpResponse, HttpRequest, JsonResponse
 # from django.contrib.admin import action
@@ -40,13 +41,6 @@ class RestaurantViewSet(viewsets.ViewSet, generics.RetrieveAPIView, generics.Lis
     queryset = Restaurant.objects.all()
     serializer_class = RestaurantSerializer
     pagination_class = RestaurantPaginator
-
-    permission_classes = [permissions.AllowAny]
-
-    def get_permissions(self):
-        if self.action in ['create_restaurant']:
-            return [permissions.IsAuthenticated()]
-        return self.permission_classes
 
     # lay query (kw) duoc truyen vao de filter
     def get_queryset(self):
@@ -79,10 +73,10 @@ class RestaurantViewSet(viewsets.ViewSet, generics.RetrieveAPIView, generics.Lis
     def perform_create(self, serializer):
         serializer.save(user=self.request.user, is_approved=False)  # Save the user and set is_approved to False
 
-    def get_queryset(self):
-        if self.request.user.is_staff:
-            return Restaurant.objects.all()  # Admins can see all restaurants
-        return Restaurant.objects.filter(user=self.request.user)  # Users see only their own restaurants
+    # def get_queryset(self):
+    #     if self.request.user.is_staff:
+    #         return Restaurant.objects.all()  # Admins can see all restaurants
+    #     return Restaurant.objects.filter(user=self.request.user)  # Users see only their own restaurants
 
 
 class DishViewSet(viewsets.ViewSet, generics.RetrieveAPIView, generics.ListAPIView):
@@ -298,7 +292,7 @@ class OrderViewSet(viewsets.ViewSet, generics.ListAPIView):
 
     @action(detail=False, methods=['GET'])
     def get_orders_confirm_by_account(self, request):
-        user_id = int(request.data.get('user_id'))
+        user_id = request.query_params.get('user_id')
         if not user_id:
             return Response({'error': 'Missing account ID'}, status=status.HTTP_400_BAD_REQUEST)
         try:
@@ -310,6 +304,10 @@ class OrderViewSet(viewsets.ViewSet, generics.ListAPIView):
         for order in orders:
             order_details = OrderDetail.objects.filter(order=order)
             serialized_order_details = OrderDetailSerializer(order_details, many=True).data
+
+            # paymentType = order.paymentType.id,
+            # serialized_paymentType = PaymentTypeSerializer(paymentType, many=True).data
+
             order_data = {
                 'id': order.id,
                 'address': order.address,
@@ -317,6 +315,7 @@ class OrderViewSet(viewsets.ViewSet, generics.ListAPIView):
                 'shipping_fee': order.shipping_fee,
                 'order_date': order.order_date,
                 'paymentType': order.paymentType.id,
+                # 'paymentType': serialized_paymentType,
                 'order_details': serialized_order_details,
             }
             order_details_data.append(order_data)
