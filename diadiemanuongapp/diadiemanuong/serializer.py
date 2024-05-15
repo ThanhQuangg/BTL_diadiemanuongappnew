@@ -120,17 +120,17 @@ class RatingSerializer(serializers.ModelSerializer):
 class PaymentTypeSerializer(serializers.ModelSerializer):
     class Meta:
         model = PaymentType
-        fields = ['name_paymentType']
+        fields = '__all__'
 
 
 class OrderSerializer(serializers.ModelSerializer):
     user_info = UserSerializer(source='user', read_only=True)
-    paymentType = PaymentTypeSerializer( read_only=True)
+    paymentType_info = PaymentTypeSerializer(read_only=True)
 
     class Meta:
         model = Order
         fields = ["id", "address", "note", "shipping_fee",
-                  "order_date", "user_info", "paymentType"]
+                  "order_date", "user_info", "paymentType_info"]
         # , "restaurant"]
 
 

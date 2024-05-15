@@ -305,8 +305,9 @@ class OrderViewSet(viewsets.ViewSet, generics.ListAPIView):
             order_details = OrderDetail.objects.filter(order=order)
             serialized_order_details = OrderDetailSerializer(order_details, many=True).data
 
-            # paymentType = order.paymentType.id,
-            # serialized_paymentType = PaymentTypeSerializer(paymentType, many=True).data
+            id = order.paymentType.id
+            paymentType = PaymentType.objects.filter(id=id)
+            serialized_paymentType = PaymentTypeSerializer(paymentType, many=True).data
 
             order_data = {
                 'id': order.id,
@@ -314,8 +315,8 @@ class OrderViewSet(viewsets.ViewSet, generics.ListAPIView):
                 'note': order.note,
                 'shipping_fee': order.shipping_fee,
                 'order_date': order.order_date,
-                'paymentType': order.paymentType.id,
-                # 'paymentType': serialized_paymentType,
+                # 'paymentType': order.paymentType.id,
+                'paymentType': serialized_paymentType,
                 'order_details': serialized_order_details,
             }
             order_details_data.append(order_data)
