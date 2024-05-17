@@ -87,6 +87,10 @@ class RestaurantAdmin(admin.ModelAdmin):
     approve_restaurants.short_description = "Approve selected restaurants"
 
 
+class TagAdmin(admin.ModelAdmin):
+    list_display = ('name',)
+
+
 class DishAdmin(admin.ModelAdmin):
     list_display = ['id', 'subject', 'description']
     form = DishForm
@@ -105,6 +109,6 @@ class DishAdmin(admin.ModelAdmin):
 admin_site.register(Category, CategoryAdmin)
 admin_site.register(Restaurant, RestaurantAdmin)
 admin_site.register(User)
-admin_site.register(Tag)
+admin_site.register(Tag, TagAdmin)
 admin_site.register(Dish)
 # admin_site.register(Login)

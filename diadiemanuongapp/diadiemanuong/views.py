@@ -1,12 +1,17 @@
+import random
+import string
+from django.utils.safestring import mark_safe
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
+from django.db import transaction
+from django.db.models import Sum
 from django.http import HttpResponseForbidden
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views import View
 from rest_framework.decorators import action
 from rest_framework import viewsets, generics, status, permissions, parsers, filters, request
 from rest_framework.response import Response
-from . import perms, serializer
+from . import perms, serializer, dao
 from .paginator import RestaurantPaginator, DishPaginator, UserPaginator
 from .serializer import CategorySerializer, RestaurantSerializer, DishSerializer, UserSerializer, CommentSerializer, \
     DishSerializerDetail, OrderSerializer, RatingSerializer, OrderDetailSerializer, RoleSerializer, \
@@ -17,7 +22,7 @@ from django.http import HttpResponse, HttpRequest, JsonResponse
 from django.contrib.auth import authenticate, login
 
 from .models import Category, Restaurant, Dish, User, Comment, Like, Order, OrderDetail, Rating, PaymentType, \
-    ActivationRequest, UserRole
+    ActivationRequest, UserRole, Bill
 from oauth2_provider.models import AccessToken
 from django import forms
 from rest_framework.parsers import MultiPartParser, JSONParser
@@ -40,8 +45,16 @@ class CategoryViewSet(viewsets.ViewSet, generics.RetrieveAPIView, generics.ListA
 class RestaurantViewSet(viewsets.ViewSet, generics.RetrieveAPIView, generics.ListAPIView, generics.CreateAPIView):
     queryset = Restaurant.objects.all()
     serializer_class = RestaurantSerializer
+    parser_classes = [parsers.MultiPartParser, parsers.JSONParser]
     # pagination_class = RestaurantPaginator
     permission_classes = [permissions.AllowAny()]
+
+    def ava(self, obj):
+        if obj:
+            return mark_safe(
+                '<img src="/static/{url}" width="120" />' \
+                    .format(url=obj.image.name)
+            )
 
     def get_permissions(self):
         if self.action in ['perform_create', 'get_queryset1', 'perform_update']:
@@ -60,7 +73,7 @@ class RestaurantViewSet(viewsets.ViewSet, generics.RetrieveAPIView, generics.Lis
     @action(methods=['get'], detail=True)
     def dishes(self, request, pk):
         d = self.get_object().dish_set.all()
-        return Response(DishSerializerDetail(d, many=True, context={  #RESER
+        return Response(DishSerializerDetail(d, many=True, context={  # RESER
             'request': request
         }).data, status=status.HTTP_200_OK)
 
@@ -77,6 +90,171 @@ class RestaurantViewSet(viewsets.ViewSet, generics.RetrieveAPIView, generics.Lis
             serializer.save(active=False)  # Users can't directly activate restaurants
         else:
             serializer.save()
+
+    # get doanh thu
+    @action(detail=True, methods=['get'])
+    def get_revenue_restaurant(self, request, pk=None):
+        restaurant_id = self.kwargs.get('pk', None)
+
+        order_details = OrderDetail.objects.filter(dish__restaurant__id=restaurant_id)
+        order_ids = order_details.values_list('order__id', flat=True)
+
+        total_revenue = Bill.objects.filter(order__id__in=order_ids).aggregate(Sum('total_amount'))[
+                            'total_amount__sum'] or 0
+
+        return Response({'restaurant_id': restaurant_id, 'total_revenue': total_revenue})
+
+    # @action(methods=['POST'], detail=True)
+    # def add_follow(self, request, pk):
+    #     restaurant_id = self.get_object()
+    #     follower_id = request.data.get('user_id')
+    #     try:
+    #         follower = user.objects.get(pk=follower_id)
+    #     except user.DoesNotExist:
+    #         return Response('Không tìm được tài khoản', status=status.HTTP_400_BAD_REQUEST)
+    #     try:
+    #         follow = Follow.objects.get(restaurant=restaurant_id, follower=follower)
+    #         follow.delete()
+    #         return Response('Đã hủy theo dõi cửa hàng', status=status.HTTP_200_OK)
+    #     except:
+    #         follow = Follow.objects.create(restaurant=restaurant_id, follower=follower)
+    #         follow.save()
+    #         return Response(serializers.FollowSerializer(follow).data, status=status.HTTP_200_OK)
+
+    # @action(methods=['GET'], detail=True)
+    # def count_follower(self, request, pk):
+    #     restaurant = restaurant.objects.get(pk=pk)
+    #     follower_count = Follow.objects.filter(restaurant=restaurant, follower__is_active=True).count()
+    #     return Response({'count_follower': follower_count}, status=status.HTTP_200_OK)
+
+    def retrieve(self, request, pk=None):
+        try:
+            restaurant = self.queryset.get(pk=pk)
+            serializer = self.serializer_class(restaurant)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Dish.DoesNotExist:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        # stats dish restaurant
+
+    @action(methods=['GET'], detail=True)
+    def dish_revenue_in_month(self, request, pk):
+        data = []
+        dish_id = request.query_params.get('dish_id')
+        year_select = request.query_params.get('year')
+        year = int(year_select) if year_select else None
+        pro_revenue = dao.dish_revenue_statistics_in_month(pk, dish_id, year)
+        if pro_revenue is not None:
+            for c in pro_revenue:
+                data.append({
+                    'id': c.get('id'),
+                    'name_dish': c.get('name_dish'),
+                    'total_revenue': c.get('total_revenue'),
+                    'total_quantity': c.get('total_quantity')
+                })
+            return Response(data, status=status.HTTP_200_OK)
+        else:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+    @action(methods=['GET'], detail=True)
+    def dish_revenue_in_year(self, request, pk):
+        data = []
+        year_select = request.query_params.get('year')
+        year = int(year_select) if year_select else None
+        dish_id = request.query_params.get('dish_id')
+        pro_revenue = dao.dish_revenue_statistics_in_year(pk, year, dish_id)
+        if pro_revenue is not None:
+            for c in pro_revenue:
+                data.append({
+                    'id': c.get('id'),
+                    'name_dish': c.get('name_dish'),
+                    'total_revenue': c.get('total_revenue'),
+                    'total_quantity': c.get('total_quantity')
+                })
+            return Response(data, status=status.HTTP_200_OK)
+        else:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+    @action(methods=['GET'], detail=True)
+    def dish_revenue_in_quarter(self, request, pk):
+        data = []
+        year_select = request.query_params.get('year')
+        year = int(year_select) if year_select else None
+        dish_id = request.query_params.get('dish_id')
+        pro_revenue = dao.dish_revenue_statistics_in_quarter(pk, year, dish_id)
+        if pro_revenue is not None:
+            for c in pro_revenue:
+                data.append({
+                    'id': c.get('id'),
+                    'name_dish': c.get('name_dish'),
+                    'total_revenue': c.get('total_revenue'),
+                    'total_quantity': c.get('total_quantity')
+                })
+            return Response(data, status=status.HTTP_200_OK)
+        else:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+    @action(methods=['GET'], detail=False)
+    def get_list_restaurant_stats(self, request):
+        restaurant = Restaurant.objects.filter(active=1)
+        restaurant_show = RestaurantSerializer(restaurant, many=True)
+        return Response(restaurant_show.data, status=status.HTTP_200_OK)
+
+    # stats total dish manager
+    @action(detail=True, methods=['GET'])
+    def dish_count_in_month(self, request, pk):
+        restaurant = self.get_object()
+
+        year = request.query_params.get('year', None)
+
+        year = int(year)
+
+        response_data = dao.dish_count_statistics_in_month(restaurant, year)
+
+        return Response(response_data)
+
+    @action(detail=True, methods=['GET'])
+    def dish_count_in_quarter(self, request, pk):
+        restaurant = self.get_object()
+
+        year = request.query_params.get('year', None)
+
+        year = int(year)
+
+        response_data = dao.dish_count_statistics_in_quarter(restaurant, year)
+
+        return Response(response_data)
+
+    # stats count order
+    @action(detail=True, methods=['GET'])
+    def get_order_count_month(self, request, pk):
+        restaurant_id = self.get_object()
+        year = request.query_params.get('year')
+        order_counts = dao.order_count_statistics_in_month(restaurant_id, year)
+        data = []
+        for count in order_counts['monthly_stats']:
+            restaurant_data = {
+                'month': count['month'],
+                'total_orders': count['total_orders'],
+                'order_info': count['order_info'],
+            }
+            data.append(restaurant_data)
+        return Response(data, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['GET'])
+    def get_order_count_quarter(self, request, pk):
+        restaurant_id = self.get_object()
+        year = request.query_params.get('year')
+        order_counts = dao.order_count_statistics_in_quarter(restaurant_id, year)
+        data = []
+        for count in order_counts['quarterly_stats']:
+            restaurant_data = {
+                'quarter': count['quarter'],
+                'total_orders': count['total_orders'],
+                'order_info': count['order_info'],
+            }
+            data.append(restaurant_data)
+        return Response(data, status=status.HTTP_200_OK)
 
 
 class DishViewSet(viewsets.ViewSet, generics.RetrieveAPIView, generics.ListAPIView):
@@ -120,6 +298,7 @@ class DishViewSet(viewsets.ViewSet, generics.RetrieveAPIView, generics.ListAPIVi
             return Response(serializer.data, status=status.HTTP_200_OK)
 
         return Response({'error': 'No query parameters provided.'}, status=status.HTTP_400_BAD_REQUEST)
+
     # api comment
     @action(methods=['post'], url_path="comments", detail=True)
     def add_comment(self, request, pk):
@@ -309,14 +488,14 @@ class OrderViewSet(viewsets.ViewSet, generics.ListAPIView):
         return Response({'order_detail': OrderDetailSerializer(orderdetails, many=True).data, 'total': total})
 
     @action(detail=False, methods=['GET'])
-    def get_orders_confirm_by_account(self, request):
+    def get_orders_confirm_by_user(self, request):
         user_id = request.query_params.get('user_id')
         if not user_id:
-            return Response({'error': 'Missing account ID'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'Missing user ID'}, status=status.HTTP_400_BAD_REQUEST)
         try:
             user = User.objects.get(id=user_id)
         except User.DoesNotExist:
-            return Response({'error': 'Account not found'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'error': 'user not found'}, status=status.HTTP_404_NOT_FOUND)
         orders = Order.objects.filter(user=user).order_by('-id')
         order_details_data = []
         for order in orders:
@@ -327,6 +506,9 @@ class OrderViewSet(viewsets.ViewSet, generics.ListAPIView):
             paymentType = PaymentType.objects.filter(id=id)
             serialized_paymentType = PaymentTypeSerializer(paymentType, many=True).data
 
+            bill = Bill.objects.filter(order=order).first()
+            bill_data = {'total_amount': bill.total_amount if bill else None}
+
             order_data = {
                 'id': order.id,
                 'address': order.address,
@@ -336,6 +518,7 @@ class OrderViewSet(viewsets.ViewSet, generics.ListAPIView):
                 # 'paymentType': order.paymentType.id,
                 'paymentType': serialized_paymentType,
                 'order_details': serialized_order_details,
+                'bill_info': bill_data,
             }
             order_details_data.append(order_data)
         return Response(order_details_data, status=status.HTTP_200_OK)
@@ -398,4 +581,33 @@ def update_activation_request(request, request_id, status):
     return redirect('review_activation_requests')
 
 
+class BillViewSet(viewsets.ViewSet, generics.ListAPIView):
+    queryset = Bill.objects.all()
+    serializer_class = serializer.BillSerializer
 
+    # random bill
+    @staticmethod
+    def generate_random_code(length=17):
+        characters = string.ascii_letters + string.digits
+        return ''.join(random.choice(characters) for i in range(length))
+
+    @action(methods=['POST'], detail=False)
+    def create_bill(self, request):
+        try:
+            total_amount = float(request.data.get('total_amount', 0))
+            order_id = int(request.data.get('order_id', 0))
+
+            with transaction.atomic():
+                bill_code = self.generate_random_code()
+                bill_transactionNo = self.generate_random_code()
+
+                bill = Bill.objects.create(
+                    bill_code=bill_code,
+                    bill_transactionNo=bill_transactionNo,
+                    total_amount=total_amount,
+                    order_id=order_id
+                )
+
+                return Response(serializer.BillSerializer(bill).data, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)

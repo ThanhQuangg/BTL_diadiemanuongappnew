@@ -1,7 +1,7 @@
 from rest_framework.serializers import ModelSerializer
 
 from .models import Category, Restaurant, Dish, Tag, User, Comment, Order, OrderDetail, Rating, \
-    PaymentType, UserRole
+    PaymentType, UserRole, Bill
 from rest_framework import serializers
 
 
@@ -44,14 +44,16 @@ class UserSerializer(serializers.ModelSerializer):
 
 class TagSerializer(serializers.ModelSerializer):
     name = serializers.CharField(max_length=255)
+
     class Meta:
         model = Tag
         fields = ['id', 'name']
 
 
 class RestaurantSerializer(serializers.ModelSerializer):
-    tags = TagSerializer(many=True)
+    tags = TagSerializer(many=True, required=False)
     image = serializers.SerializerMethodField(source='image')
+
     # category = CategorySerializer()
     def get_image(self, obj):
         request = self.context.get('request')
@@ -62,7 +64,7 @@ class RestaurantSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Restaurant
-        fields = ['id', 'name', 'address', 'image', 'description', 'price',  'category', 'tags']
+        fields = ['id', 'name', 'address', 'image', 'description', 'price', 'category', 'tags', 'avatar']
         read_only_fields = ['is_approved']  # Ngăn không cho trường này được chỉnh sửa từ API
 
     # def create(self, validated_data):
@@ -148,3 +150,9 @@ class RoleSerializer(ModelSerializer):
     class Meta:
         model = UserRole
         fields = ['id', "name_role"]
+
+
+class BillSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Bill
+        fields = '__all__'
