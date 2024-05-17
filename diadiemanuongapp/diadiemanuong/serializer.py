@@ -43,6 +43,7 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class TagSerializer(serializers.ModelSerializer):
+    name = serializers.CharField(max_length=255)
     class Meta:
         model = Tag
         fields = ['id', 'name']
@@ -51,7 +52,7 @@ class TagSerializer(serializers.ModelSerializer):
 class RestaurantSerializer(serializers.ModelSerializer):
     tags = TagSerializer(many=True)
     image = serializers.SerializerMethodField(source='image')
-
+    # category = CategorySerializer()
     def get_image(self, obj):
         request = self.context.get('request')
         if obj.image:
@@ -61,15 +62,15 @@ class RestaurantSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Restaurant
-        fields = ['id', 'name', 'address', 'image', 'description', 'price', 'tags']
-        # read_only_fields = ['is_approved', 'user']  # Prevent these fields from being set via the API
+        fields = ['id', 'name', 'address', 'image', 'description', 'price',  'category', 'tags']
+        read_only_fields = ['is_approved']  # Ngăn không cho trường này được chỉnh sửa từ API
 
-    def create(self, validated_data):
-        tags_data = validated_data.pop('tags')
-        restaurant = Restaurant.objects.create(**validated_data)
-        for tag_data in tags_data:
-            Tag.objects.create(restaurant=restaurant, **tag_data)
-        return restaurant
+    # def create(self, validated_data):
+    #     tags_data = validated_data.pop('tags')
+    #     restaurant = Restaurant.objects.create(**validated_data)
+    #     for tag_data in tags_data:
+    #         Tag.objects.create(restaurant=restaurant, **tag_data)
+    #     return restaurant
 
 
 class DishSerializer(serializers.ModelSerializer):

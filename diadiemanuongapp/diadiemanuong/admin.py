@@ -42,7 +42,7 @@ class RestaurantForm(forms.ModelForm):
 
     class Meta:
         model = Restaurant
-        fields = ['id', 'name', 'address', 'latitude', 'longitude', 'image', 'description', 'tags', 'category']
+        fields = ['id', 'name', 'address', 'latitude', 'longitude', 'image', 'description', 'category', 'tags']
 
 
 class DishForm(forms.ModelForm):
@@ -60,8 +60,9 @@ class CategoryAdmin(admin.ModelAdmin):
 
 
 class RestaurantAdmin(admin.ModelAdmin):
-    list_display = ['id', 'name', 'description']
-    search_fields = ['name']
+    list_display = ['id', 'name', 'description', 'user', 'is_approved', 'active']
+    search_fields = ['name', 'is_approved', 'active']
+    actions = ['approve_restaurants']
     list_filter = ['id', 'name']
     form = RestaurantForm
     inlines = [RestaurantTagInlineAdmin]
@@ -78,6 +79,12 @@ class RestaurantAdmin(admin.ModelAdmin):
                 '<img src="/static/{url}" width="120" />' \
                     .format(url=obj.image.name)
             )
+
+    def approve_restaurants(self, request, queryset):
+        queryset.update(is_approved=True)
+        queryset.update(active=True)
+
+    approve_restaurants.short_description = "Approve selected restaurants"
 
 
 class DishAdmin(admin.ModelAdmin):

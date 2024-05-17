@@ -50,14 +50,14 @@ class Restaurant(BaseModel):
     category = models.ForeignKey(Category, on_delete=models.RESTRICT, related_query_name='restaurants')
     price = models.DecimalField(max_digits=10, decimal_places=2, null=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True)
-    # active = models.BooleanField(default=False)
-    # is_approved = models.BooleanField(default=False)
+
+    active = models.BooleanField(default=False)
+    is_approved = models.BooleanField(default=False)# Trạng thái duyệt từ admin
 
 
     # owner = models.ForeignKey(User, on_delete=models.CASCADE)
-    # is_approved = models.BooleanField(default=False)  # Trạng thái duyệt từ admin
 
-    tags = models.ManyToManyField('Tag')
+    tags = models.ManyToManyField('Tag', null=True)
 
     def __str__(self):
         return self.name
@@ -82,9 +82,9 @@ class Dish(BaseModel):
         # self.__private_field = "tags"
         return self.name
 
-    # danh mục không được trùng nhau
-    # class Meta:
-    #     unique_together = ('name', 'restaurant')
+    #danh mục không được trùng nhau
+    class Meta:
+        unique_together = ('name', 'restaurant')
 
 
 class Tag(BaseModel):

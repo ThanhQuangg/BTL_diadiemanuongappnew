@@ -37,10 +37,16 @@ class CategoryViewSet(viewsets.ViewSet, generics.RetrieveAPIView, generics.ListA
         }).data, status=status.HTTP_200_OK)
 
 
-class RestaurantViewSet(viewsets.ViewSet, generics.RetrieveAPIView, generics.ListAPIView):
+class RestaurantViewSet(viewsets.ViewSet, generics.RetrieveAPIView, generics.ListAPIView, generics.CreateAPIView):
     queryset = Restaurant.objects.all()
     serializer_class = RestaurantSerializer
-    pagination_class = RestaurantPaginator
+    # pagination_class = RestaurantPaginator
+    permission_classes = [permissions.AllowAny()]
+
+    def get_permissions(self):
+        if self.action in ['perform_create', 'get_queryset1', 'perform_update']:
+            return [permissions.IsAuthenticated()]
+        return self.permission_classes
 
     # lay query (kw) duoc truyen vao de filter
     def get_queryset(self):
@@ -50,33 +56,27 @@ class RestaurantViewSet(viewsets.ViewSet, generics.RetrieveAPIView, generics.Lis
             queries = queries.filter(name__icontains=q)
         return queries
 
-    # api lien ket restaurant voi dish qua restaurant_id de lay
-    # danh sach dish trong restaurant
+    # api lien ket restaurant voi dish qua restaurant_id de lay danh sach dish trong restaurant
     @action(methods=['get'], detail=True)
     def dishes(self, request, pk):
         d = self.get_object().dish_set.all()
-        return Response(RestaurantSerializer(d, many=True, context={
+        return Response(DishSerializerDetail(d, many=True, context={  #RESER
             'request': request
         }).data, status=status.HTTP_200_OK)
 
-    # api post restaurant
-    @action(methods=['post'], detail=True)
-    def create_restaurant(self, request, pk):
-        comment = Comment.objects.create(user=request.user, dish=self.get_object(),
-                                         content=request.data.get('content'))
-        comment.save()
-
-        return Response(CommentSerializer(comment, context={
-            'request': request
-        }).data, status=status.HTTP_201_CREATED)
-
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user, is_approved=False)  # Save the user and set is_approved to False
+        serializer.save(user=self.request.user, is_approved=False)  # Lưu người dùng và đặt is_approved thành False
 
-    # def get_queryset(self):
-    #     if self.request.user.is_staff:
-    #         return Restaurant.objects.all()  # Admins can see all restaurants
-    #     return Restaurant.objects.filter(user=self.request.user)  # Users see only their own restaurants
+    def get_queryset1(self):
+        if self.request.user.is_staff:
+            return Restaurant.objects.all()  # Admin có thể xem tất cả các nhà hàng
+        return Restaurant.objects.filter(user=self.request.user)  # Người dùng chỉ có thể xem nhà hàng của họ
+
+    def perform_update(self, serializer):
+        if not self.request.user.is_staff:
+            serializer.save(active=False)  # Users can't directly activate restaurants
+        else:
+            serializer.save()
 
 
 class DishViewSet(viewsets.ViewSet, generics.RetrieveAPIView, generics.ListAPIView):
@@ -102,6 +102,24 @@ class DishViewSet(viewsets.ViewSet, generics.RetrieveAPIView, generics.ListAPIVi
             queries = queries.filter(price__icontains=x)
         return queries
 
+    @action(methods=['get'], detail=False, url_path='search')
+    def search(self, request):
+        dish_name_query = request.query_params.get('dish_name')
+        restaurant_name_query = request.query_params.get('restaurant_name')
+
+        if dish_name_query:
+            dishes = Dish.objects.filter(name__icontains=dish_name_query).select_related('restaurant')
+            restaurant_ids = dishes.values_list('restaurant_id', flat=True).distinct()
+            restaurants = Restaurant.objects.filter(id__in=restaurant_ids)
+            serializer = RestaurantSerializer(restaurants, many=True, context={'request': request})
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        if restaurant_name_query:
+            restaurants = Restaurant.objects.filter(name__icontains=restaurant_name_query)
+            serializer = RestaurantSerializer(restaurants, many=True, context={'request': request})
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        return Response({'error': 'No query parameters provided.'}, status=status.HTTP_400_BAD_REQUEST)
     # api comment
     @action(methods=['post'], url_path="comments", detail=True)
     def add_comment(self, request, pk):
@@ -380,7 +398,4 @@ def update_activation_request(request, request_id, status):
     return redirect('review_activation_requests')
 
 
-class RoleViewSet(viewsets.ViewSet,
-                  generics.ListAPIView):
-    queryset = UserRole.objects.all()
-    serializer_class = RoleSerializer
+
