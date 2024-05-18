@@ -1,7 +1,8 @@
 from django.urls import path, include
 from . import views
 from rest_framework import routers
-from .views import request_activation, review_activation_requests, update_activation_request, activation_request_success
+from .views import request_activation, review_activation_requests, update_activation_request, \
+    activation_request_success, RestaurantViewSet
 
 router = routers.DefaultRouter()
 router.register('categories', views.CategoryViewSet, basename='categories')
@@ -23,5 +24,5 @@ urlpatterns = [
     path('update-activation-request/<int:request_id>/<str:status>/', update_activation_request,
          name='update_activation_request'),
     path('activation-request-success/', activation_request_success, name='activation_request_success'),
-
+    path('restaurant/<int:pk>/monthly_revenue_page/', RestaurantViewSet.as_view({'get': 'monthly_revenue_page'})),
 ]

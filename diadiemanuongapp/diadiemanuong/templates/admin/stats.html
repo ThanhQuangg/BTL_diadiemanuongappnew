@@ -17,131 +17,53 @@
 {% endblock %}
 
 {%block content%}
-<!--<h1>THỐNG KÊ SỐ LƯỢNG NHÀ HÀNG</h1>-->
+<h1>THỐNG KÊ SỐ LƯỢNG NHÀ HÀNG</h1>
 
-<!--<ul>-->
-<!--    {%for item in stats%}-->
-<!--        <li><strong>{{item.name}}</strong>: {{item.count}}</li>-->
-<!--    {%endfor%}-->
-<!--</ul>-->
-<!--<div>-->
-<!--    <canvas id="myChart"></canvas>-->
-<!--</div>-->
-<!--<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>-->
-<!--<script>-->
-<!--  window.onload = () =>{-->
-<!--  let values = [];-->
-<!--  let labels = [];-->
-<!--  {%for item in stats%}-->
-<!--        values.push({{item.count}})-->
-<!--        labels.push('{{item.name}}')-->
-<!--  {%endfor%}-->
-
-<!--  const ctx = document.getElementById('myChart');-->
-
-<!--  new Chart(ctx, {-->
-<!--    type: 'bar',-->
-<!--    data: {-->
-<!--      labels: labels,-->
-<!--      datasets: [{-->
-<!--        label: 'Count Restaurant',-->
-<!--        data: values,-->
-<!--        borderWidth: 1,-->
-<!--        backgroundColor: [-->
-<!--          'rgb(255, 99, 132)',-->
-<!--          'rgb(54, 162, 235)',-->
-<!--          'rgb(255, 205, 86)'-->
-<!--        ],-->
-<!--      }]-->
-<!--    },-->
-<!--    options: {-->
-<!--      scales: {-->
-<!--        y: {-->
-<!--          beginAtZero: true-->
-<!--        }-->
-<!--      }-->
-<!--    }-->
-<!--  });-->
-<!--  }-->
-<!--</script>-->
-
-<div class="container">
-    <div class="month-selection">
-        <form id="monthForm">
-            <div>
-                <label for="month">Thống Kê theo tháng:</label>
-                <select id="month" name="month">
-                    <option value="Chọn tháng"></option>
-                    <option value="1">Tháng 1</option>
-                    <option value="2">Tháng 2</option>
-                    <option value="3">Tháng 3</option>
-                    <option value="4">Tháng 4</option>
-                    <option value="5">Tháng 5</option>
-                    <option value="6">Tháng 6</option>
-                    <option value="7">Tháng 7</option>
-                    <option value="8">Tháng 8</option>
-                    <option value="9">Tháng 9</option>
-                    <option value="10">Tháng 10</option>
-                    <option value="11">Tháng 11</option>
-                    <option value="12">Tháng 12</option>
-                </select>
-            </div>
-            <button>Xem thống kê</button>
-        </form>
-    </div>
-</div>
-<h2>THỐNG KÊ ĐƠN HÀNG</h2>
+<ul>
+    {%for item in stats%}
+        <li><strong>{{item.name}}</strong>: {{item.count}}</li>
+    {%endfor%}
+</ul>
 <div>
-    <canvas id="myChart1"></canvas>
+    <canvas id="myChart"></canvas>
 </div>
-<table>
-    <thead>
-        <tr>
-            <th>Tên cửa hàng</th>
-            <th>Số lượng đơn hàng</th>
-        </tr>
-    </thead>
-    <tbody>
-    {% for r in order_in_month %}
-        <tr>
-            <td>{{ r.name_restaurant }}</td>
-            <td>{{ r.order_counts }}</td>
-        </tr>
-    {% endfor %}
-    </tbody>
-</table>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    window.onload = () => {
-        const restaurantNames = [];
-        const orderCounts = [];
+  window.onload = () =>{
+  let values = [];
+  let labels = [];
+  {%for item in stats%}
+        values.push({{item.count}})
+        labels.push('{{item.name}}')
+  {%endfor%}
 
-        {% for r in order_in_month %}
-            restaurantNames.push("{{ r.name_restaurant }}");
-            orderCounts.push("{{ r.order_counts }}");
-        {% endfor %}
+  const ctx = document.getElementById('myChart');
 
-        const ctx = document.getElementById('myChart1').getContext('2d');
-
-        new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: restaurantNames,
-                datasets: [{
-                    label: 'Số lượng đơn hàng theo tháng',
-                    data: orderCounts,
-                    backgroundColor: 'rgba(54, 162, 235, 0.2)',
-                    borderColor: 'rgb(54, 162, 235)',
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                scales: {
-                    y: {
-                        beginAtZero: true
-                    }
-                }
-            }
-        });
-    };
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Count Restaurant',
+        data: values,
+        borderWidth: 1,
+        backgroundColor: [
+          'rgb(255, 99, 132)',
+          'rgb(54, 162, 235)',
+          'rgb(255, 205, 86)'
+        ],
+      }]
+    },
+    options: {
+      scales: {
+        y: {
+          beginAtZero: true
+        }
+      }
+    }
+  });
+  }
 </script>
+
+
 {%endblock%}

@@ -5,7 +5,7 @@ from django.utils.safestring import mark_safe
 from django import forms
 from ckeditor_uploader.widgets import CKEditorUploadingWidget
 
-from .dao import count_restaurant_by_cat
+from .dao import count_restaurant_by_cat, get_monthly_revenue
 from .models import Category, Restaurant, User, Tag, Dish
 
 
@@ -15,13 +15,29 @@ class RestaurantAppAdminSite(admin.AdminSite):
 
     def get_urls(self):
         return [
-            path('diadiemanuong-stats/', self.stats_view)
+            path('diadiemanuong-stats/', self.admin_view(self.stats_view), name='diadiemanuong-stats'),
         ] + super().get_urls()
 
     def stats_view(self, request):
-        stats = count_restaurant_by_cat()
-        return TemplateResponse(request, 'admin/stats.html', context={
-            'stats': stats
+        restaurant_ids = request.GET.get('restaurant_ids')
+        year = request.GET.get('year')
+
+        if not restaurant_ids or not year:
+            context = {'error': 'Restaurant IDs and Year parameters are required'}
+            return TemplateResponse(request, 'admin/monthly_revenue.html', context)
+
+        try:
+            restaurant_ids = [int(rid) for rid in restaurant_ids.split(',')]
+            year = int(year)
+        except ValueError:
+            context = {'error': 'Restaurant IDs must be integers and Year parameter must be an integer'}
+            return TemplateResponse(request, 'admin/monthly_revenue.html', context)
+
+        stats = get_monthly_revenue(restaurant_ids, year)
+        return TemplateResponse(request, 'admin/monthly_revenue.html', context={
+            'stats': stats,
+            'restaurant_id': restaurant_ids,
+            'year': year,
         })
 
 

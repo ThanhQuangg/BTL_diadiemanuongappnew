@@ -2,7 +2,7 @@ from .models import Category, Restaurant, Dish, OrderDetail, Order
 from datetime import datetime, timedelta
 
 from django.db.models import Count, Sum, F, FloatField, ExpressionWrapper
-from django.db.models.functions import ExtractMonth, ExtractYear
+from django.db.models.functions import ExtractMonth, ExtractYear, TruncMonth, TruncQuarter
 from .serializer import DishSerializer, OrderDetailSerializer
 
 
@@ -34,348 +34,113 @@ def count_restaurant_by_cat():
     return Category.objects.annotate(count=Count('restaurants__id')).values('id', 'name', 'count').order_by('-count')
 
 
-def get_order_count_in_month(month):
-    # Chuyển đổi month thành một số nguyên (ví dụ: 1 cho tháng 1, 2 cho tháng 2, ...)
-    month = int(month)
-
-    # Xác định ngày đầu tiên của tháng được chỉ định
-    start_date = datetime(year=datetime.now().year, month=month, day=1)
-
-    # Xác định ngày cuối cùng của tháng được chỉ định
-    if month == 12:
-        end_date = datetime(year=datetime.now().year + 1, month=1, day=1)
-    else:
-        end_date = datetime(year=datetime.now().year, month=month + 1, day=1)
-
-    # Sử dụng filter để lấy tất cả các đơn hàng trong khoảng thời gian này
-    orders_in_month = Order.objects.filter(created_date__gte=start_date, created_date__lt=end_date)
-
-    # Đếm số lượng đơn hàng
-    order_count = orders_in_month.count()
-
-    return order_count
-
-
-def get_order_count_in_year(year):
-    # Chuyển đổi year thành một số nguyên
-    year = int(year)
-
-    # Xác định ngày đầu tiên và ngày cuối cùng của năm được chỉ định
-    start_date = datetime(year=year, month=1, day=1)
-    end_date = datetime(year=year + 1, month=1, day=1)
-
-    # Sử dụng filter để lấy tất cả các đơn hàng trong khoảng thời gian này
-    orders_in_year = Order.objects.filter(created_date__gte=start_date, created_date__lt=end_date)
-
-    # Đếm số lượng đơn hàng
-    order_count = orders_in_year.count()
-
-    return order_count
-
-
-def get_order_count_in_quarter(quarter, year):
-    # Chuyển đổi quarter và year thành các số nguyên
-    quarter = int(quarter)
-    year = int(year)
-
-    # Xác định tháng đầu tiên và tháng cuối cùng của quý được chỉ định
-    if quarter == 1:
-        start_month = 1
-        end_month = 4
-    elif quarter == 2:
-        start_month = 4
-        end_month = 7
-    elif quarter == 3:
-        start_month = 7
-        end_month = 10
-    elif quarter == 4:
-        start_month = 10
-        end_month = 13
-
-    # Xác định ngày đầu tiên và ngày cuối cùng của quý được chỉ định
-    start_date = datetime(year=year, month=start_month, day=1)
-    end_date = datetime(year=year, month=end_month, day=1)
-
-    # Sử dụng filter để lấy tất cả các đơn hàng trong khoảng thời gian này
-    orders_in_quarter = Order.objects.filter(created_date__gte=start_date, created_date__lt=end_date)
-
-    # Đếm số lượng đơn hàng
-    order_count = orders_in_quarter.count()
-
-    return order_count
-
-
-##=================================================##seller - stast dish and category
-
-
-def dish_revenue_statistics_in_month(restaurant_id, dish_id, year):
-    data = []
-
-    dish_name = Dish.objects.filter(id=dish_id, restaurant_id=restaurant_id).values('name_dish').first()
-
-    if dish_name:
-        dish_name = dish_name['name_dish']
-        monthly_data = []
-
-        for month in range(1, 13):
-            start_date = datetime(year, month, 1)
-            end_date = start_date.replace(month=start_date.month % 12 + 1, day=1) - timedelta(days=1)
-
-            dish_revenue = (
-                    Dish.objects.filter(id=dish_id, restaurant_id=restaurant_id,
-                                        orderdetail__order__created_at__date__range=[start_date, end_date])
-                                        #orderdetail__order__status_pay=True)
-                    .annotate(
-                        total_revenue=ExpressionWrapper(
-                            Sum(F('orderdetail__quantity') * F('price'), output_field=FloatField()),
-                            output_field=FloatField()
-                        ),
-                        total_quantity=Sum('orderdetail__quantity')
-                    )
-                    .values('id', 'name_dish', 'total_revenue', 'total_quantity')
-                    .first() or {'total_revenue': 0, 'total_quantity': 0}
-            )
-
-            monthly_data.append({
-                'id': dish_id,
-                'name_dish': dish_name,
-                'total_revenue': dish_revenue['total_revenue'],
-                'total_quantity': dish_revenue['total_quantity'],
-                'month': month
-            })
-
-        data.extend(monthly_data)
-
-    return data
-
-
-def dish_revenue_statistics_in_year(restaurant_id, year, dish_id):
-    data = []
-    dish_name = Dish.objects.filter(id=dish_id, restaurant_id=restaurant_id).values('name_dish').first()
-
-    if dish_name:
-        dish_name = dish_name['name_dish']
-        yearly_data = []
-
-        current_year = datetime.now().year
-        start_year = year
-
-        for year in range(start_year, current_year + 1):
-            start_date = datetime(year, 1, 1)
-            end_date = datetime(year, 12, 31)
-
-            dish_revenue = (
-                    Dish.objects.filter(id=dish_id, restaurant_id=restaurant_id,
-                                           orderdetail__order__created_at__date__range=[start_date, end_date])
-                                           #orderdetail__order__status_pay=True)
-                    .annotate(
-                        total_revenue=ExpressionWrapper(
-                            Sum(F('orderdetail__quantity') * F('price'), output_field=FloatField()),
-                            output_field=FloatField()
-                        ),
-                        total_quantity=Sum('orderdetail__quantity')
-                    )
-                    .values('id', 'name_dish', 'total_revenue', 'total_quantity')
-                    .first() or {'total_revenue': 0, 'total_quantity': 0}
-            )
-
-            yearly_data.append({
-                'id': dish_id,
-                'name_dish': dish_name,
-                'total_revenue': dish_revenue['total_revenue'],
-                'total_quantity': dish_revenue['total_quantity'],
-            })
-        data.extend(yearly_data)
-    return data
-
-
-def dish_revenue_statistics_in_quarter(restaurant_id, year, dish_id):
-    data = []
-    dish_name = Dish.objects.filter(id=dish_id, restaurant_id=restaurant_id).values('name_dish').first()
-
-    if dish_name:
-        dish_name = dish_name['name_dish']
-        quarterly_data = []
-
-        for quarter in range(1, 5):
-            start_date = datetime(year, (quarter - 1) * 3 + 1, 1)
-            # Tính toán ngày cuối cùng của quý
-            end_date = start_date.replace(month=start_date.month + 2) + timedelta(days=30)
-
-            dish_revenue = (
-                Dish.objects.filter(id=dish_id, restaurant_id=restaurant_id,
-                                       orderdetail__order__created_at__date__range=[start_date, end_date])
-                                      # orderdetail__order__status_pay=True)
-                .annotate(
-                    total_revenue=ExpressionWrapper(
-                        Sum(F('orderdetail__quantity') * F('price'), output_field=FloatField()),
-                        output_field=FloatField()
-                    ),
-                    total_quantity=Sum('orderdetail__quantity')
-                )
-                .values('id', 'name_dish', 'total_revenue', 'total_quantity')
-                .first()
-            )
-
-            if dish_revenue is None:
-                dish_revenue = {'total_revenue': 0, 'total_quantity': 0}
-
-            quarterly_data.append({
-                'id': dish_id,
-                'name_dish': dish_name,
-                'total_revenue': dish_revenue['total_revenue'],
-                'total_quantity': dish_revenue['total_quantity'],
-            })
-        data.extend(quarterly_data)
-    return data
-
-
-
-
-##=================================================##manager - stats count dish
-
-
-def dish_count_statistics_in_month(restaurant, year):
-    monthly_stats = (
-        Dish.objects
-        .annotate(month=ExtractMonth('created_at'))
-        .filter(created_at__year=year, restaurant=restaurant, status=True)
-        .values('month')
-        .annotate(
-            total_dishes=Count('id'),
-        )
+def get_monthly_revenue(restaurant_ids, year):
+    monthly_revenue = (
+        Order.objects.filter(restaurant_id=restaurant_ids, order_date__year=year)
+        .annotate(month=TruncMonth('order_date'))
+        .values('restaurant_id', 'month')
+        .annotate(total_revenue=Sum('total_amount', output_field=FloatField()))
+        .order_by('restaurant_id', 'month')
     )
-
-    all_months_stats = [
-        {
-            'month': month,
-            'total_dishes': 0,
-            'dish_info': []
-        } for month in range(1, 13)
-    ]
-
-    total_dishes_all_months = 0
-
-    for stats in monthly_stats:
-        month = stats['month']
-        dishes = Dish.objects.filter(created_at__year=year, created_at__month=month, restaurant=restaurant)
-        dish_info = DishSerializer(dishes, many=True).data
-
-        total_dishes_all_months += stats['total_dishes']
-
-        all_months_stats[month - 1].update({
-            'total_dishes': stats['total_dishes'],
-            'dish_info': dish_info,
-        })
-
-    return {
-        'total_dishes_all_months': total_dishes_all_months,
-        'monthly_stats': all_months_stats,
-    }
+    return monthly_revenue
 
 
-def dish_count_statistics_in_quarter(restaurant, year):
-    quarterly_stats = []
-    total_dishes_all_quarters = 0
-
-    for quarter in range(1, 5):
-        start_date = datetime(year, (quarter - 1) * 3 + 1, 1)
-        end_date = start_date.replace(month=start_date.month + 2) + timedelta(days=30)
-
-        dishes = Dish.objects.filter(
-            created_at__year=year,
-            created_at__month__in=[(quarter - 1) * 3 + 1, (quarter - 1) * 3 + 2, (quarter - 1) * 3 + 3],
-            restaurant=restaurant,
-            #status=True
-        )
-
-        dish_info = DishSerializer(dishes, many=True).data
-
-        total_dishes = dishes.count()
-
-        total_dishes_all_quarters += total_dishes
-
-        quarterly_stats.append({
-            'quarter': quarter,
-            'total_dishes': total_dishes,
-            'dish_info': dish_info,
-        })
-
-    return {
-        'total_dishes_all_quarters': total_dishes_all_quarters,
-        'quarterly_stats': quarterly_stats,
-    }
-
-
-##=================================================##manager - count order
-
-
-def order_count_statistics_in_month(restaurant_id, year):
-    monthly_stats = (
-        OrderDetail.objects
-        .filter(dish__restaurant_id=restaurant_id, order__created_at__year=year)
-        .annotate(month=ExtractMonth('order__created_at'))
-        .values('month')
-        .annotate(
-            total_orders=Count('order__id'),
-        )
+def get_quarterly_revenue(restaurant_id, year):
+    quarterly_revenue = (
+        Order.objects.filter(restaurant_id=restaurant_id, order_date__year=year)
+        .annotate(quarter=TruncQuarter('order_date'))
+        .values('quarter')
+        .annotate(total_revenue=Sum('total_amount', output_field=FloatField()))
+        .order_by('quarter')
     )
+    return quarterly_revenue
 
-    all_months_stats = [
-        {
-            'month': month,
-            'total_orders': 0,
-            'order_info': []
-        } for month in range(1, 13)
-    ]
 
-    for stats in monthly_stats:
-        month = stats['month']
-        orders = OrderDetail.objects.filter(
-            dish__restaurant_id=restaurant_id,
-            order__created_at__year=year,
-            order__created_at__month=month
-        )
+def get_yearly_revenue(restaurant_id, year):
+    yearly_revenue = (
+        Order.objects.filter(restaurant_id=restaurant_id, order_date__year=year)
+        .annotate(year=ExtractYear('order_date'))
+        .values('year')
+        .annotate(total_revenue=Sum('total_amount', output_field=FloatField()))
+        .order_by('year')
+    )
+    return yearly_revenue
 
-        order_info = OrderDetailSerializer(orders, many=True).data
 
-        all_months_stats[month - 1].update({
-            'total_orders': stats['total_orders'],
-            'order_info': order_info,
+def calculate_monthly_revenue_for_dishes(restaurant_id, year, month):
+    start_date = datetime(year, month, 1)
+    end_date = start_date.replace(month=start_date.month % 12 + 1, day=1) - timedelta(days=1)
+
+    dishes = Dish.objects.filter(restaurant_id=restaurant_id)
+
+    monthly_revenue = []
+    for dish in dishes:
+        dish_revenue = OrderDetail.objects.filter(
+            dish=dish,
+            order__restaurant_id=restaurant_id,
+            order__order_date__range=[start_date, end_date]
+        ).aggregate(total_revenue=Sum(F('quantity') * F('total')))['total_revenue'] or 0
+
+        monthly_revenue.append({
+            'dish_id': dish.id,
+            'dish_name': dish.name,
+            'total_revenue': dish_revenue
         })
 
-    return {
-        'monthly_stats': all_months_stats,
+    return monthly_revenue
+
+
+def calculate_quarterly_revenue_for_dishes(restaurant_id, year, quarter):
+    quarters = {
+        1: [1, 2, 3],
+        2: [4, 5, 6],
+        3: [7, 8, 9],
+        4: [10, 11, 12]
     }
 
+    start_month = quarters[quarter][0]
+    end_month = quarters[quarter][-1]
 
-def order_count_statistics_in_quarter(restaurant_id, year):
-    try:
-        year = int(year)
-    except ValueError:
-        return {'quarterly_stats': []}
+    start_date = datetime(year, start_month, 1)
+    end_date = datetime(year, end_month, 1) + timedelta(days=31)
 
-    quarterly_stats = []
+    dishes = Dish.objects.filter(restaurant_id=restaurant_id)
 
-    for quarter in range(1, 5):
-        start_date = datetime(year, (quarter - 1) * 3 + 1, 1)
-        end_date = start_date.replace(month=start_date.month + 2) + timedelta(days=30)
+    quarterly_revenue = []
+    for dish in dishes:
+        dish_revenue = OrderDetail.objects.filter(
+            dish=dish,
+            order__restaurant_id=restaurant_id,
+            order__order_date__range=[start_date, end_date]
+        ).aggregate(total_revenue=Sum(F('quantity') * F('total')))['total_revenue'] or 0
 
-        orders = OrderDetail.objects.filter(
-            dish__restaurant_id=restaurant_id,
-            order__created_at__range=[start_date, end_date]
-        )
-
-        order_info = OrderDetailSerializer(orders, many=True).data
-
-        total_orders = orders.count()
-
-        quarterly_stats.append({
-            'quarter': quarter,
-            'total_orders': total_orders,
-            'order_info': order_info,
+        quarterly_revenue.append({
+            'dish_id': dish.id,
+            'dish_name': dish.name,
+            'total_revenue': dish_revenue
         })
 
-    return {
-        'quarterly_stats': quarterly_stats,
-    }
+    return quarterly_revenue
+
+
+def calculate_yearly_revenue_for_dishes(restaurant_id, year):
+    start_date = datetime(year, 1, 1)
+    end_date = datetime(year, 12, 31)
+
+    dishes = Dish.objects.filter(restaurant_id=restaurant_id)
+
+    yearly_revenue = []
+    for dish in dishes:
+        dish_revenue = OrderDetail.objects.filter(
+            dish=dish,
+            order__restaurant_id=restaurant_id,
+            order__order_date__range=[start_date, end_date]
+        ).aggregate(total_revenue=Sum(F('quantity') * F('total')))['total_revenue'] or 0
+
+        yearly_revenue.append({
+            'dish_id': dish.id,
+            'dish_name': dish.name,
+            'total_revenue': dish_revenue
+        })
+
+    return yearly_revenue

@@ -3,6 +3,7 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser, Group
 from ckeditor.fields import RichTextField
 from cloudinary.models import CloudinaryField
+from django.db.models import Sum, F
 
 
 class UserRole(models.Model):

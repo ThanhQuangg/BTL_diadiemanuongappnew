@@ -12,6 +12,8 @@ from rest_framework.decorators import action
 from rest_framework import viewsets, generics, status, permissions, parsers, filters, request
 from rest_framework.response import Response
 from . import perms, serializer, dao
+from .dao import get_monthly_revenue, get_quarterly_revenue, get_yearly_revenue, calculate_monthly_revenue_for_dishes, \
+    calculate_quarterly_revenue_for_dishes, calculate_yearly_revenue_for_dishes
 from .paginator import RestaurantPaginator, DishPaginator, UserPaginator
 from .serializer import CategorySerializer, RestaurantSerializer, DishSerializer, UserSerializer, CommentSerializer, \
     DishSerializerDetail, OrderSerializer, RatingSerializer, OrderDetailSerializer, RoleSerializer, \
@@ -91,172 +93,141 @@ class RestaurantViewSet(viewsets.ViewSet, generics.RetrieveAPIView, generics.Lis
         else:
             serializer.save()
 
-    # get doanh thu
-    @action(detail=True, methods=['get'])
-    def get_revenue_restaurant(self, request, pk=None):
-        restaurant_id = self.kwargs.get('pk', None)
+    #doanh thu restaurant theo tháng
+    @action(detail=True, methods=['GET'])
+    def monthly_revenue(self, request, pk=None):
+        restaurant_id = pk
+        year = request.query_params.get('year')
 
-        order_details = OrderDetail.objects.filter(dish__restaurant__id=restaurant_id)
-        order_ids = order_details.values_list('order__id', flat=True)
+        if not year:
+            return Response({'error': 'Year parameter is required'}, status=status.HTTP_400_BAD_REQUEST)
 
-        total_revenue = Bill.objects.filter(order__id__in=order_ids).aggregate(Sum('total_amount'))[
-                            'total_amount__sum'] or 0
-
-        return Response({'restaurant_id': restaurant_id, 'total_revenue': total_revenue})
-
-    # @action(methods=['POST'], detail=True)
-    # def add_follow(self, request, pk):
-    #     restaurant_id = self.get_object()
-    #     follower_id = request.data.get('user_id')
-    #     try:
-    #         follower = user.objects.get(pk=follower_id)
-    #     except user.DoesNotExist:
-    #         return Response('Không tìm được tài khoản', status=status.HTTP_400_BAD_REQUEST)
-    #     try:
-    #         follow = Follow.objects.get(restaurant=restaurant_id, follower=follower)
-    #         follow.delete()
-    #         return Response('Đã hủy theo dõi cửa hàng', status=status.HTTP_200_OK)
-    #     except:
-    #         follow = Follow.objects.create(restaurant=restaurant_id, follower=follower)
-    #         follow.save()
-    #         return Response(serializers.FollowSerializer(follow).data, status=status.HTTP_200_OK)
-
-    # @action(methods=['GET'], detail=True)
-    # def count_follower(self, request, pk):
-    #     restaurant = restaurant.objects.get(pk=pk)
-    #     follower_count = Follow.objects.filter(restaurant=restaurant, follower__is_active=True).count()
-    #     return Response({'count_follower': follower_count}, status=status.HTTP_200_OK)
-
-    def retrieve(self, request, pk=None):
         try:
-            restaurant = self.queryset.get(pk=pk)
-            serializer = self.serializer_class(restaurant)
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        except Dish.DoesNotExist:
-            return Response(status=status.HTTP_400_BAD_REQUEST)
+            year = int(year)
+        except ValueError:
+            return Response({'error': 'Year parameter must be an integer'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # stats dish restaurant
+        monthly_revenue = get_monthly_revenue(restaurant_id, year)
 
-    @action(methods=['GET'], detail=True)
-    def dish_revenue_in_month(self, request, pk):
         data = []
-        dish_id = request.query_params.get('dish_id')
-        year_select = request.query_params.get('year')
-        year = int(year_select) if year_select else None
-        pro_revenue = dao.dish_revenue_statistics_in_month(pk, dish_id, year)
-        if pro_revenue is not None:
-            for c in pro_revenue:
-                data.append({
-                    'id': c.get('id'),
-                    'name_dish': c.get('name_dish'),
-                    'total_revenue': c.get('total_revenue'),
-                    'total_quantity': c.get('total_quantity')
-                })
-            return Response(data, status=status.HTTP_200_OK)
-        else:
-            return Response(status=status.HTTP_404_NOT_FOUND)
+        for item in monthly_revenue:
+            data.append({
+                'month': item['month'].strftime('%Y-%m'),
+                'total_revenue': item['total_revenue']
+            })
 
-    @action(methods=['GET'], detail=True)
-    def dish_revenue_in_year(self, request, pk):
-        data = []
-        year_select = request.query_params.get('year')
-        year = int(year_select) if year_select else None
-        dish_id = request.query_params.get('dish_id')
-        pro_revenue = dao.dish_revenue_statistics_in_year(pk, year, dish_id)
-        if pro_revenue is not None:
-            for c in pro_revenue:
-                data.append({
-                    'id': c.get('id'),
-                    'name_dish': c.get('name_dish'),
-                    'total_revenue': c.get('total_revenue'),
-                    'total_quantity': c.get('total_quantity')
-                })
-            return Response(data, status=status.HTTP_200_OK)
-        else:
-            return Response(status=status.HTTP_404_NOT_FOUND)
-
-    @action(methods=['GET'], detail=True)
-    def dish_revenue_in_quarter(self, request, pk):
-        data = []
-        year_select = request.query_params.get('year')
-        year = int(year_select) if year_select else None
-        dish_id = request.query_params.get('dish_id')
-        pro_revenue = dao.dish_revenue_statistics_in_quarter(pk, year, dish_id)
-        if pro_revenue is not None:
-            for c in pro_revenue:
-                data.append({
-                    'id': c.get('id'),
-                    'name_dish': c.get('name_dish'),
-                    'total_revenue': c.get('total_revenue'),
-                    'total_quantity': c.get('total_quantity')
-                })
-            return Response(data, status=status.HTTP_200_OK)
-        else:
-            return Response(status=status.HTTP_404_NOT_FOUND)
-
-    @action(methods=['GET'], detail=False)
-    def get_list_restaurant_stats(self, request):
-        restaurant = Restaurant.objects.filter(active=1)
-        restaurant_show = RestaurantSerializer(restaurant, many=True)
-        return Response(restaurant_show.data, status=status.HTTP_200_OK)
-
-    # stats total dish manager
-    @action(detail=True, methods=['GET'])
-    def dish_count_in_month(self, request, pk):
-        restaurant = self.get_object()
-
-        year = request.query_params.get('year', None)
-
-        year = int(year)
-
-        response_data = dao.dish_count_statistics_in_month(restaurant, year)
-
-        return Response(response_data)
-
-    @action(detail=True, methods=['GET'])
-    def dish_count_in_quarter(self, request, pk):
-        restaurant = self.get_object()
-
-        year = request.query_params.get('year', None)
-
-        year = int(year)
-
-        response_data = dao.dish_count_statistics_in_quarter(restaurant, year)
-
-        return Response(response_data)
-
-    # stats count order
-    @action(detail=True, methods=['GET'])
-    def get_order_count_month(self, request, pk):
-        restaurant_id = self.get_object()
-        year = request.query_params.get('year')
-        order_counts = dao.order_count_statistics_in_month(restaurant_id, year)
-        data = []
-        for count in order_counts['monthly_stats']:
-            restaurant_data = {
-                'month': count['month'],
-                'total_orders': count['total_orders'],
-                'order_info': count['order_info'],
-            }
-            data.append(restaurant_data)
         return Response(data, status=status.HTTP_200_OK)
 
+    def monthly_revenue_page(self, request, pk=None):
+        return render(request, 'monthly_revenue.html', {'restaurant_id': pk})
+    # doanh thu restaurant theo quý
     @action(detail=True, methods=['GET'])
-    def get_order_count_quarter(self, request, pk):
-        restaurant_id = self.get_object()
+    def quarterly_revenue(self, request, pk=None):
+        restaurant_id = pk
         year = request.query_params.get('year')
-        order_counts = dao.order_count_statistics_in_quarter(restaurant_id, year)
+
+        if not year:
+            return Response({'error': 'Year parameter is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            year = int(year)
+        except ValueError:
+            return Response({'error': 'Year parameter must be an integer'}, status=status.HTTP_400_BAD_REQUEST)
+
+        quarterly_revenue = get_quarterly_revenue(restaurant_id, year)
+
         data = []
-        for count in order_counts['quarterly_stats']:
-            restaurant_data = {
-                'quarter': count['quarter'],
-                'total_orders': count['total_orders'],
-                'order_info': count['order_info'],
-            }
-            data.append(restaurant_data)
+        for item in quarterly_revenue:
+            quarter = (item['quarter'].month - 1) // 3 + 1
+            data.append({
+                'quarter': quarter,
+                'total_revenue': item['total_revenue']
+            })
+
         return Response(data, status=status.HTTP_200_OK)
 
+    # doanh thu restaurant theo năm
+    @action(detail=True, methods=['GET'])
+    def yearly_revenue(self, request, pk=None):
+        restaurant_id = pk
+        year = request.query_params.get('year')
 
+        if not year:
+            return Response({'error': 'Year parameter is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            year = int(year)
+        except ValueError:
+            return Response({'error': 'Year parameter must be an integer'}, status=status.HTTP_400_BAD_REQUEST)
+
+        yearly_revenue = get_yearly_revenue(restaurant_id, year)
+
+        data = []
+        for item in yearly_revenue:
+            data.append({
+                'year': item['year'],
+                'total_revenue': item['total_revenue']
+            })
+
+        return Response(data, status=status.HTTP_200_OK)
+
+    #Lượt bán món ăn theo tháng
+    @action(detail=True, methods=['GET'])
+    def monthly_dish_revenue(self, request, pk=None):
+        restaurant_id = pk
+        year = request.query_params.get('year')
+        month = request.query_params.get('month')
+
+        if not year or not month:
+            return Response({'error': 'Year and month parameters are required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            year = int(year)
+            month = int(month)
+        except ValueError:
+            return Response({'error': 'Year and month parameters must be integers'}, status=status.HTTP_400_BAD_REQUEST)
+
+        monthly_revenue = calculate_monthly_revenue_for_dishes(restaurant_id, year, month)
+
+        return Response(monthly_revenue, status=status.HTTP_200_OK)
+
+    #Lượt bán món ăn theo quý
+    @action(detail=True, methods=['GET'])
+    def quarterly_dish_revenue(self, request, pk=None):
+        restaurant_id = pk
+        year = request.query_params.get('year')
+        quarter = request.query_params.get('quarter')
+
+        if not year or not quarter:
+            return Response({'error': 'Year and quarter parameters are required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            year = int(year)
+            quarter = int(quarter)
+        except ValueError:
+            return Response({'error': 'Year and quarter parameters must be integers'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        quarterly_revenue = calculate_quarterly_revenue_for_dishes(restaurant_id, year, quarter)
+
+        return Response(quarterly_revenue, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['GET'])
+    def yearly_dish_revenue(self, request, pk=None):
+        restaurant_id = pk
+        year = request.query_params.get('year')
+
+        if not year:
+            return Response({'error': 'Year parameter is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            year = int(year)
+        except ValueError:
+            return Response({'error': 'Year parameter must be an integer'}, status=status.HTTP_400_BAD_REQUEST)
+
+        yearly_revenue = calculate_yearly_revenue_for_dishes(restaurant_id, year)
+
+        return Response(yearly_revenue, status=status.HTTP_200_OK)
 class DishViewSet(viewsets.ViewSet, generics.RetrieveAPIView, generics.ListAPIView):
     queryset = Dish.objects.all()
     serializer_class = DishSerializer
