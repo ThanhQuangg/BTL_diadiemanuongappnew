@@ -1,13 +1,16 @@
 import random
 import string
+
+from django.db.models.functions import TruncMonth
 from django.utils.safestring import mark_safe
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
-from django.db.models import Sum
+from django.db.models import Sum, FloatField
 from django.http import HttpResponseForbidden
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views import View
+from django.views.generic import ListView
 from rest_framework.decorators import action
 from rest_framework import viewsets, generics, status, permissions, parsers, filters, request
 from rest_framework.response import Response
@@ -93,7 +96,7 @@ class RestaurantViewSet(viewsets.ViewSet, generics.RetrieveAPIView, generics.Lis
         else:
             serializer.save()
 
-    #doanh thu restaurant theo tháng
+    # doanh thu restaurant theo tháng
     @action(detail=True, methods=['GET'])
     def monthly_revenue(self, request, pk=None):
         restaurant_id = pk
@@ -120,6 +123,7 @@ class RestaurantViewSet(viewsets.ViewSet, generics.RetrieveAPIView, generics.Lis
 
     def monthly_revenue_page(self, request, pk=None):
         return render(request, 'monthly_revenue.html', {'restaurant_id': pk})
+
     # doanh thu restaurant theo quý
     @action(detail=True, methods=['GET'])
     def quarterly_revenue(self, request, pk=None):
@@ -171,7 +175,7 @@ class RestaurantViewSet(viewsets.ViewSet, generics.RetrieveAPIView, generics.Lis
 
         return Response(data, status=status.HTTP_200_OK)
 
-    #Lượt bán món ăn theo tháng
+    # Lượt bán món ăn theo tháng
     @action(detail=True, methods=['GET'])
     def monthly_dish_revenue(self, request, pk=None):
         restaurant_id = pk
@@ -191,7 +195,7 @@ class RestaurantViewSet(viewsets.ViewSet, generics.RetrieveAPIView, generics.Lis
 
         return Response(monthly_revenue, status=status.HTTP_200_OK)
 
-    #Lượt bán món ăn theo quý
+    # Lượt bán món ăn theo quý
     @action(detail=True, methods=['GET'])
     def quarterly_dish_revenue(self, request, pk=None):
         restaurant_id = pk
@@ -228,6 +232,8 @@ class RestaurantViewSet(viewsets.ViewSet, generics.RetrieveAPIView, generics.Lis
         yearly_revenue = calculate_yearly_revenue_for_dishes(restaurant_id, year)
 
         return Response(yearly_revenue, status=status.HTTP_200_OK)
+
+
 class DishViewSet(viewsets.ViewSet, generics.RetrieveAPIView, generics.ListAPIView):
     queryset = Dish.objects.all()
     serializer_class = DishSerializer
@@ -401,7 +407,7 @@ class OrderViewSet(viewsets.ViewSet, generics.ListAPIView):
         total_amount = request.data.get('total_amount')
         user = int(request.data.get('user_id'))
         paymentType_id = int(request.data.get('paymentType_id'))
-        # restaurant_id = int(request.data.get('restaurant_id'))
+        restaurant_id = int(request.data.get('restaurant_id'))
 
         if request.user.is_authenticated:
             if not address or not shipping_fee or not note or not paymentType_id:
@@ -417,8 +423,8 @@ class OrderViewSet(viewsets.ViewSet, generics.ListAPIView):
                 return Response("Không tìm thấy loại thanh toán.", status=status.HTTP_400_BAD_REQUEST)
 
             order = Order.objects.create(address=address, shipping_fee=shipping_fee, note=note,
-                                         total_amount=total_amount, user=user, paymentType=payment_type)
-            # restaurant_id=restaurant_id)
+                                         total_amount=total_amount, user=user, paymentType=payment_type,
+                                         restaurant_id=restaurant_id)
 
             order.save()
             return Response(serializer.OrderSerializer(order).data, status=status.HTTP_200_OK)
@@ -582,3 +588,8 @@ class BillViewSet(viewsets.ViewSet, generics.ListAPIView):
                 return Response(serializer.BillSerializer(bill).data, status=status.HTTP_201_CREATED)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class MonthlyRevenueView(View):
+    def get(self, request):
+        return render(request, 'monthly_revenue.html')

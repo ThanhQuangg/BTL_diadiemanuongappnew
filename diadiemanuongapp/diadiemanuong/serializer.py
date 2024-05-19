@@ -67,13 +67,6 @@ class RestaurantSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'address', 'image', 'description', 'price', 'category', 'tags', 'avatar']
         read_only_fields = ['is_approved']  # Ngăn không cho trường này được chỉnh sửa từ API
 
-    # def create(self, validated_data):
-    #     tags_data = validated_data.pop('tags')
-    #     restaurant = Restaurant.objects.create(**validated_data)
-    #     for tag_data in tags_data:
-    #         Tag.objects.create(restaurant=restaurant, **tag_data)
-    #     return restaurant
-
 
 class DishSerializer(serializers.ModelSerializer):
     tags = TagSerializer(many=True)
@@ -156,3 +149,5 @@ class BillSerializer(serializers.ModelSerializer):
     class Meta:
         model = Bill
         fields = '__all__'
+
+

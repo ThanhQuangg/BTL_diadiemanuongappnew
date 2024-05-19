@@ -9,9 +9,9 @@
 </head>
 <body>
     <h1>Monthly Revenue</h1>
-    <form method="get">
-        <label for="restaurant_ids">Restaurant IDs (comma separated): </label>
-        <input type="text" id="restaurant_ids" name="restaurant_ids" value="{{ restaurant_ids }}">
+    <form method="get" action="{% url 'admin:diadiemanuong-stats' %}">
+        <label for="restaurant_id">Restaurant ID: </label>
+        <input type="text" id="restaurant_id" name="restaurant_id" value="{{ restaurant_id }}">
         <label for="year">Year: </label>
         <input type="number" id="year" name="year" value="{{ year }}">
         <button type="submit">Fetch Revenue</button>
@@ -23,43 +23,27 @@
             $(document).ready(function(){
                 var ctx = document.getElementById('revenueChart').getContext('2d');
                 var labels = [];
-                var datasets = {};
+                var revenues = [];
 
                 {% for item in stats %}
-                    var month = '{{ item.month|date:"Y-m" }}';
-                    if (!labels.includes(month)) {
-                        labels.push(month);
-                    }
-                    var restaurantId = '{{ item.restaurant_id }}';
-                    if (!(restaurantId in datasets)) {
-                        datasets[restaurantId] = {
-                            label: 'Restaurant ' + restaurantId,
-                            data: [],
-                            backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                            borderColor: 'rgba(75, 192, 192, 1)',
-                            borderWidth: 1
-                        };
-                    }
-                    datasets[restaurantId].data.push({ x: month, y: parseFloat('{{ item.total_revenue }}') });
+                    labels.push('{{ item.month|date:"Y-m" }}');
+                    revenues.push({{ item.total_revenue }});
                 {% endfor %}
-
-                var dataSetsArray = [];
-                for (var key in datasets) {
-                    dataSetsArray.push(datasets[key]);
-                }
 
                 var revenueChart = new Chart(ctx, {
                     type: 'bar',
                     data: {
                         labels: labels,
-                        datasets: dataSetsArray
+                        datasets: [{
+                            label: 'Total Revenue',
+                            data: revenues,
+                            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                            borderColor: 'rgba(75, 192, 192, 1)',
+                            borderWidth: 1
+                        }]
                     },
                     options: {
                         scales: {
-                            x: {
-                                type: 'category',
-                                labels: labels
-                            },
                             y: {
                                 beginAtZero: true
                             }

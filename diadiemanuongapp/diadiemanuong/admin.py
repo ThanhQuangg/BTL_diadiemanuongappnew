@@ -19,24 +19,24 @@ class RestaurantAppAdminSite(admin.AdminSite):
         ] + super().get_urls()
 
     def stats_view(self, request):
-        restaurant_ids = request.GET.get('restaurant_ids')
+        restaurant_id = request.GET.get('restaurant_id')
         year = request.GET.get('year')
 
-        if not restaurant_ids or not year:
+        if not restaurant_id or not year:
             context = {'error': 'Restaurant IDs and Year parameters are required'}
             return TemplateResponse(request, 'admin/monthly_revenue.html', context)
 
         try:
-            restaurant_ids = [int(rid) for rid in restaurant_ids.split(',')]
+            restaurant_id = int(restaurant_id)
             year = int(year)
         except ValueError:
-            context = {'error': 'Restaurant IDs must be integers and Year parameter must be an integer'}
+            context = {'error': 'Restaurant ID and Year parameters must be integers'}
             return TemplateResponse(request, 'admin/monthly_revenue.html', context)
 
-        stats = get_monthly_revenue(restaurant_ids, year)
+        stats = get_monthly_revenue(restaurant_id, year)
         return TemplateResponse(request, 'admin/monthly_revenue.html', context={
             'stats': stats,
-            'restaurant_id': restaurant_ids,
+            'restaurant_id': restaurant_id,
             'year': year,
         })
 

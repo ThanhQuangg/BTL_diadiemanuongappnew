@@ -188,3 +188,8 @@ class Follow(BaseModel):
 
     def __str__(self):
         return f"Follower: {self.follower}"
+
+# class Revenue(models.Model):
+#     restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE)
+#     date = models.DateField()
+#     amount = models.DecimalField(max_digits=10, decimal_places=2)

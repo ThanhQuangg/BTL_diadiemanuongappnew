@@ -34,9 +34,9 @@ def count_restaurant_by_cat():
     return Category.objects.annotate(count=Count('restaurants__id')).values('id', 'name', 'count').order_by('-count')
 
 
-def get_monthly_revenue(restaurant_ids, year):
+def get_monthly_revenue(restaurant_id, year):
     monthly_revenue = (
-        Order.objects.filter(restaurant_id=restaurant_ids, order_date__year=year)
+        Order.objects.filter(restaurant_id=restaurant_id, order_date__year=year)
         .annotate(month=TruncMonth('order_date'))
         .values('restaurant_id', 'month')
         .annotate(total_revenue=Sum('total_amount', output_field=FloatField()))
